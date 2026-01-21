@@ -1,7 +1,7 @@
 title: Paper Digests
 description: Daily curated paper digests on research topics
-baseurl: "" # Set to "/repo-name" if not using custom domain
-url: "" # Set to your GitHub Pages URL
+baseurl: "/abstract_fetcher"
+url: "https://steinidavid.github.io"
 
 # Build settings
 markdown: kramdown
