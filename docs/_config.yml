@@ -7,9 +7,6 @@ url: "https://steinidavid.github.io"
 markdown: kramdown
 highlighter: rouge
 
-# Theme
-remote_theme: pages-themes/minimal@v0.2.0
-
 # Collections
 collections:
   digests:
@@ -24,13 +21,8 @@ defaults:
     values:
       layout: "digest"
 
-# Sass
-sass:
-  style: compressed
-
 # Plugins
-plugins:
-  - jekyll-remote-theme
+plugins: []
 
 # Exclude from build
 exclude:

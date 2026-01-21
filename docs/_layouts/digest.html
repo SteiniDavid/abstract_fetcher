@@ -2,36 +2,42 @@
 layout: default
 ---
 
-<article class="digest">
-  <header class="digest-header">
-    <h1>{{ page.title }}</h1>
-    <time datetime="{{ page.date }}">{{ page.date }}</time>
+<article>
+  <header class="mb-6">
+    <h1 class="font-sans font-semibold text-3xl mb-1">{{ page.title }}</h1>
+    <time datetime="{{ page.date }}" class="text-sm text-slate-500 dark:text-slate-400">{{ page.date }}</time>
   </header>
 
-  <div class="digest-stats">
-    <div class="stat-box">
-      <span class="stat-value">{{ page.num_selected }}</span>
-      <span class="stat-label">Selected</span>
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 my-6">
+    <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-center">
+      <span class="block text-3xl font-bold text-blue-700 dark:text-blue-400 font-sans">{{ page.num_selected }}</span>
+      <span class="block text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">Selected</span>
     </div>
-    <div class="stat-box">
-      <span class="stat-value">{{ page.num_downloaded }}</span>
-      <span class="stat-label">Downloaded</span>
+    <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-center">
+      <span class="block text-3xl font-bold text-blue-700 dark:text-blue-400 font-sans">{{ page.num_downloaded }}</span>
+      <span class="block text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">Downloaded</span>
     </div>
-    <div class="stat-box">
-      <span class="stat-value">{{ page.num_abstracts }}</span>
-      <span class="stat-label">Abstracts</span>
+    <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-center">
+      <span class="block text-3xl font-bold text-blue-700 dark:text-blue-400 font-sans">{{ page.num_abstracts }}</span>
+      <span class="block text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">Abstracts</span>
     </div>
-    <div class="stat-box">
-      <span class="stat-value">{{ page.num_candidates }}</span>
-      <span class="stat-label">Candidates</span>
+    <div class="bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg p-4 text-center">
+      <span class="block text-3xl font-bold text-blue-700 dark:text-blue-400 font-sans">{{ page.num_candidates }}</span>
+      <span class="block text-xs uppercase tracking-wide text-slate-500 dark:text-slate-400 mt-1">Candidates</span>
     </div>
   </div>
 
-  <div class="digest-content">
+  <div class="digest-content prose prose-slate dark:prose-invert max-w-none
+    prose-headings:font-sans
+    prose-h2:text-lg prose-h2:mt-10 prose-h2:p-4 prose-h2:pl-5 prose-h2:bg-slate-50 prose-h2:dark:bg-slate-800 prose-h2:border-l-4 prose-h2:border-teal-500 prose-h2:border-b-0 prose-h2:rounded-r
+    prose-h3:text-sm prose-h3:text-slate-500 prose-h3:dark:text-slate-400 prose-h3:mt-5 prose-h3:mb-2
+    prose-a:text-blue-700 prose-a:dark:text-blue-400 prose-a:no-underline hover:prose-a:underline
+    prose-blockquote:bg-slate-50 prose-blockquote:dark:bg-slate-800 prose-blockquote:rounded prose-blockquote:border-l-0 prose-blockquote:p-4 prose-blockquote:text-sm prose-blockquote:not-italic
+    prose-hr:border-slate-200 prose-hr:dark:border-slate-700 prose-hr:my-8">
     {{ content }}
   </div>
 
-  <nav class="digest-nav">
-    <a href="{{ '/' | relative_url }}">&larr; Back to all digests</a>
+  <nav class="mt-12 pt-6 border-t border-slate-200 dark:border-slate-700">
+    <a href="{{ '/' | relative_url }}" class="text-blue-700 dark:text-blue-400 hover:underline">&larr; Back to all digests</a>
   </nav>
 </article>

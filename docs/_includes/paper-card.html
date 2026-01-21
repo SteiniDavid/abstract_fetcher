@@ -1,21 +1,21 @@
-<div class="paper-card">
-  <h3 class="paper-title">{{ include.title }}</h3>
+<div class="my-6 p-5 bg-white dark:bg-slate-900 border-l-4 border-teal-500 shadow-sm dark:shadow-slate-900/50">
+  <h3 class="text-lg font-sans font-semibold m-0 mb-2">{{ include.title }}</h3>
   {% if include.authors %}
-  <p class="paper-authors">{{ include.authors }}</p>
+  <p class="text-sm text-slate-500 dark:text-slate-400 my-1">{{ include.authors }}</p>
   {% endif %}
   {% if include.links %}
-  <p class="paper-links">{{ include.links }}</p>
+  <p class="text-sm my-2">{{ include.links }}</p>
   {% endif %}
   {% if include.abstract %}
-  <details class="paper-abstract">
-    <summary>Abstract</summary>
-    <p>{{ include.abstract }}</p>
+  <details class="my-3">
+    <summary class="cursor-pointer font-semibold text-sm text-blue-700 dark:text-blue-400 py-2 hover:underline">Abstract</summary>
+    <p class="p-4 bg-slate-50 dark:bg-slate-800 rounded text-sm mt-2">{{ include.abstract }}</p>
   </details>
   {% endif %}
   {% if include.conclusion %}
-  <details class="paper-conclusion">
-    <summary>Conclusion</summary>
-    <p>{{ include.conclusion }}</p>
+  <details class="my-3">
+    <summary class="cursor-pointer font-semibold text-sm text-blue-700 dark:text-blue-400 py-2 hover:underline">Conclusion</summary>
+    <p class="p-4 bg-slate-50 dark:bg-slate-800 rounded text-sm mt-2">{{ include.conclusion }}</p>
   </details>
   {% endif %}
 </div>
