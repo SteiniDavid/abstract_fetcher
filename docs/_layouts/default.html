@@ -13,6 +13,12 @@
           fontFamily: {
             serif: ['Georgia', 'Times New Roman', 'serif'],
             sans: ['-apple-system', 'BlinkMacSystemFont', 'Segoe UI', 'Roboto', 'sans-serif'],
+          },
+          colors: {
+            'header': '#2c5282',
+            'header-dark': '#2d3748',
+            'accent': '#4a90a4',
+            'accent-dark': '#76c7d4',
           }
         }
       }
@@ -20,6 +26,7 @@
   </script>
   <style type="text/tailwindcss">
     @layer base {
+      /* Index page list styling */
       main > ul {
         @apply list-none p-0;
       }
@@ -27,7 +34,49 @@
         @apply py-2 border-b border-slate-200 dark:border-slate-700 last:border-b-0;
       }
       main > ul > li > a {
-        @apply text-blue-700 dark:text-blue-400 no-underline hover:underline;
+        @apply text-header dark:text-accent-dark no-underline hover:underline;
+      }
+
+      /* Digest content styling */
+      .digest-content {
+        @apply leading-relaxed;
+      }
+      .digest-content h2 {
+        @apply font-sans font-semibold text-lg mt-10 mb-4 p-4 pl-5
+               bg-slate-50 dark:bg-slate-800
+               border-l-4 border-accent dark:border-accent-dark
+               rounded-r text-slate-800 dark:text-slate-100;
+      }
+      .digest-content h3 {
+        @apply font-sans font-semibold text-sm text-slate-500 dark:text-slate-400
+               mt-5 mb-2 uppercase tracking-wide;
+      }
+      .digest-content p {
+        @apply my-3 text-slate-700 dark:text-slate-300;
+      }
+      .digest-content a {
+        @apply text-header dark:text-accent-dark no-underline hover:underline;
+      }
+      .digest-content strong {
+        @apply font-semibold text-slate-800 dark:text-slate-200;
+      }
+      .digest-content hr {
+        @apply border-0 border-t border-slate-200 dark:border-slate-700 my-8;
+      }
+      .digest-content blockquote {
+        @apply my-2 p-4 bg-slate-50 dark:bg-slate-800 rounded text-sm
+               border-l-0 not-italic text-slate-600 dark:text-slate-400;
+      }
+      .digest-content ul {
+        @apply list-disc pl-6 my-3;
+      }
+      .digest-content li {
+        @apply my-1;
+      }
+
+      /* Headings general */
+      h1, h2, h3, h4, h5, h6 {
+        @apply font-sans font-semibold leading-tight;
       }
     }
   </style>
@@ -41,7 +90,7 @@
   </script>
 </head>
 <body class="font-serif text-slate-700 dark:text-slate-200 leading-relaxed bg-white dark:bg-slate-900 min-h-screen">
-  <header class="bg-blue-800 dark:bg-slate-800 text-white py-8 mb-8">
+  <header class="bg-header dark:bg-header-dark text-white py-8 mb-8">
     <div class="max-w-4xl mx-auto px-6 flex justify-between items-center">
       <div>
         <h1 class="text-2xl font-sans font-semibold m-0">
