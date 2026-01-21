@@ -2,6 +2,7 @@
 
 import json
 import logging
+from datetime import date
 from pathlib import Path
 
 import requests
@@ -164,7 +165,7 @@ class SemanticScholarAdapter(CachedSearchAdapter):
 
             for item in results:
                 paper = self._parse_paper(item)
-                if paper and paper.year >= 2024 - topic.recency_years:
+                if paper and paper.year >= date.today().year - topic.recency_years:
                     # Use paperId or title as dedup key
                     key = item.get("paperId") or paper.title_normalized
                     if key not in all_papers:

@@ -98,6 +98,7 @@ class TopicConfig:
     require_pdf: bool = False
     extract_conclusion: bool = True
     venue_boost: list[str] = field(default_factory=list)
+    diversity_keywords: list[str] = field(default_factory=list)
 
     @classmethod
     def from_dict(cls, data: dict) -> "TopicConfig":
@@ -113,6 +114,7 @@ class TopicConfig:
             require_pdf=data.get("require_pdf", False),
             extract_conclusion=data.get("extract_conclusion", True),
             venue_boost=data.get("venue_boost", []),
+            diversity_keywords=data.get("diversity_keywords", []),
         )
 
 

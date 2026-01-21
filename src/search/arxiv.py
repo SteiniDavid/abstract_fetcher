@@ -3,6 +3,7 @@
 import logging
 import re
 import xml.etree.ElementTree as ET
+from datetime import date
 from pathlib import Path
 
 import requests
@@ -210,7 +211,7 @@ class ArxivAdapter(CachedSearchAdapter):
 
             for entry in root.findall("atom:entry", NS):
                 paper = self._parse_entry(entry)
-                if paper and paper.year >= 2024 - topic.recency_years:
+                if paper and paper.year >= date.today().year - topic.recency_years:
                     # Use arxiv_id or title as dedup key
                     key = paper.arxiv_id or paper.title_normalized
                     if key not in all_papers:

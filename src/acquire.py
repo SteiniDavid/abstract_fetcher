@@ -4,6 +4,7 @@ import logging
 import re
 import time
 from pathlib import Path
+from typing import TypedDict
 from urllib.parse import urlparse
 
 import requests
@@ -12,6 +13,15 @@ from .search import Paper
 
 
 logger = logging.getLogger(__name__)
+
+
+class DownloadResult(TypedDict, total=False):
+    """Result of downloading a PDF."""
+
+    status: str
+    path: str | None
+    error: str | None
+    url: str | None
 
 # Known OA domains
 OA_DOMAINS = {
@@ -58,10 +68,10 @@ def safe_filename(paper: Paper) -> str:
     return f"{paper.safe_filename()}.pdf"
 
 
-def download_pdf(paper: Paper, output_dir: Path) -> dict:
+def download_pdf(paper: Paper, output_dir: Path) -> DownloadResult:
     """Download PDF for a paper.
 
-    Returns a dict with:
+    Returns a DownloadResult with:
     - status: "success", "failed", or "skipped"
     - path: path to downloaded file (if success)
     - error: error message (if failed)
@@ -125,10 +135,10 @@ def download_pdf(paper: Paper, output_dir: Path) -> dict:
         return {"status": "failed", "error": f"IO error: {e}"}
 
 
-def download_pdfs(papers: list[Paper], output_dir: Path) -> list[dict]:
+def download_pdfs(papers: list[Paper], output_dir: Path) -> list[DownloadResult]:
     """Download PDFs for a list of papers.
 
-    Returns a list of result dicts (same order as input papers).
+    Returns a list of DownloadResult dicts (same order as input papers).
     """
     output_dir.mkdir(parents=True, exist_ok=True)
 

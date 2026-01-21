@@ -8,7 +8,7 @@ from pathlib import Path
 import click
 import yaml
 
-from .search import TopicConfig
+from .search import Paper, TopicConfig
 from .search.semantic_scholar import SemanticScholarAdapter
 from .search.arxiv import ArxivAdapter
 from .db import PaperDatabase
@@ -53,13 +53,11 @@ def run_searches(
     topic: TopicConfig,
     cache_dir: Path,
     failures: dict,
-) -> list:
+) -> list[Paper]:
     """Run searches across all configured sources.
 
     Returns list of candidate papers.
     """
-    from .search import Paper
-
     candidates: list[Paper] = []
 
     # Semantic Scholar
@@ -86,10 +84,10 @@ def run_searches(
 
 
 def deduplicate_and_filter(
-    candidates: list,
+    candidates: list[Paper],
     db: PaperDatabase,
     num_papers: int,
-) -> tuple[list, list, list]:
+) -> tuple[list[Paper], list[Paper], list[Paper]]:
     """Deduplicate candidates and filter for novel papers.
 
     Returns (unique_papers, novel_papers, papers_to_rank).

@@ -3,6 +3,7 @@
 import logging
 import re
 from pathlib import Path
+from typing import TypedDict
 
 import fitz  # PyMuPDF
 
@@ -10,6 +11,24 @@ from .search import Paper
 
 
 logger = logging.getLogger(__name__)
+
+# Extraction length constants
+MAX_ABSTRACT_LENGTH = 2000
+MAX_CONCLUSION_LENGTH = 3000
+MIN_SECTION_LENGTH = 50
+
+
+class ExtractionResult(TypedDict, total=False):
+    """Result of text extraction for a paper."""
+
+    abstract: str | None
+    abstract_source: str | None
+    abstract_status: str
+    abstract_error: str | None
+    conclusion: str | None
+    conclusion_source: str | None
+    conclusion_status: str
+    conclusion_error: str | None
 
 # Section header patterns
 ABSTRACT_PATTERNS = [
@@ -156,10 +175,10 @@ def extract_abstract_from_pdf(pdf_path: str | Path) -> str | None:
     abstract = find_section(
         text,
         ABSTRACT_PATTERNS,
-        max_length=2000,
+        max_length=MAX_ABSTRACT_LENGTH,
     )
 
-    if abstract and len(abstract) > 50:
+    if abstract and len(abstract) > MIN_SECTION_LENGTH:
         return abstract
 
     # Fallback: try to find text before introduction
@@ -170,7 +189,7 @@ def extract_abstract_from_pdf(pdf_path: str | Path) -> str | None:
         # Find first substantial paragraph
         paragraphs = [p.strip() for p in first_part.split("\n\n") if len(p.strip()) > 100]
         if paragraphs:
-            return clean_text(paragraphs[-1])[:2000]
+            return clean_text(paragraphs[-1])[:MAX_ABSTRACT_LENGTH]
 
     return None
 
@@ -192,10 +211,10 @@ def extract_conclusion_from_pdf(pdf_path: str | Path) -> str | None:
             r"^supplementary",
             r"^broader\s+impact",
         ],
-        max_length=3000,
+        max_length=MAX_CONCLUSION_LENGTH,
     )
 
-    if conclusion and len(conclusion) > 50:
+    if conclusion and len(conclusion) > MIN_SECTION_LENGTH:
         return conclusion
 
     return None
@@ -205,7 +224,7 @@ def extract_text(
     papers: list[Paper],
     download_results: list[dict],
     extract_conclusion: bool = True,
-) -> list[dict]:
+) -> list[ExtractionResult]:
     """Extract abstract and optionally conclusion for papers.
 
     Args:

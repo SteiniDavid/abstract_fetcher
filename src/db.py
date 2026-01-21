@@ -8,6 +8,9 @@ from rapidfuzz import fuzz
 
 from .search import Paper
 
+# Fuzzy matching threshold for title deduplication (0-100)
+FUZZY_MATCH_THRESHOLD = 92
+
 
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS papers (
@@ -91,7 +94,7 @@ class PaperDatabase:
         row = cursor.fetchone()
         return dict(row) if row else None
 
-    def _find_paper_by_title(self, title_norm: str, threshold: int = 92) -> dict | None:
+    def _find_paper_by_title(self, title_norm: str, threshold: int = FUZZY_MATCH_THRESHOLD) -> dict | None:
         """Find paper by fuzzy title match."""
         cursor = self.conn.execute("SELECT * FROM papers")
         for row in cursor:
@@ -223,7 +226,7 @@ class PaperDatabase:
             title_norm = paper.title_normalized
             is_dup = False
             for seen_title in seen_titles:
-                if fuzz.ratio(seen_title, title_norm) >= 92:
+                if fuzz.ratio(seen_title, title_norm) >= FUZZY_MATCH_THRESHOLD:
                     is_dup = True
                     break
 

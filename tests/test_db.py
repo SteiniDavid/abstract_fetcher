@@ -5,27 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from src.search.base import Paper
 from src.db import PaperDatabase
-
-
-def create_paper(**kwargs) -> Paper:
-    """Create a Paper with default values, overriding with kwargs."""
-    defaults = {
-        "title": "Test Paper Title",
-        "authors": ["Author One"],
-        "year": 2024,
-        "venue": None,
-        "doi": None,
-        "arxiv_id": None,
-        "url": "https://example.com",
-        "pdf_url": None,
-        "abstract": None,
-        "citation_count": None,
-        "source": "test",
-    }
-    defaults.update(kwargs)
-    return Paper(**defaults)
 
 
 @pytest.fixture
@@ -41,7 +21,7 @@ def db():
 class TestDeduplication:
     """Tests for paper deduplication."""
 
-    def test_deduplicate_by_doi(self, db):
+    def test_deduplicate_by_doi(self, db, create_paper):
         papers = [
             create_paper(title="Paper 1", doi="10.1234/a"),
             create_paper(title="Paper 1 Copy", doi="10.1234/a"),
@@ -54,7 +34,7 @@ class TestDeduplication:
         dois = {p.doi for p in unique}
         assert dois == {"10.1234/a", "10.1234/b"}
 
-    def test_deduplicate_by_arxiv_id(self, db):
+    def test_deduplicate_by_arxiv_id(self, db, create_paper):
         papers = [
             create_paper(title="Paper 1", arxiv_id="2401.00001"),
             create_paper(title="Paper 1 Copy", arxiv_id="2401.00001"),
@@ -67,7 +47,7 @@ class TestDeduplication:
         arxiv_ids = {p.arxiv_id for p in unique}
         assert arxiv_ids == {"2401.00001", "2401.00002"}
 
-    def test_deduplicate_by_fuzzy_title(self, db):
+    def test_deduplicate_by_fuzzy_title(self, db, create_paper):
         papers = [
             create_paper(title="Imitation Learning via DAgger"),
             create_paper(title="Imitation Learning via Dagger"),  # Slightly different
@@ -79,7 +59,7 @@ class TestDeduplication:
         # Should find the similar titles as duplicates
         assert len(unique) == 2
 
-    def test_deduplicate_preserves_order(self, db):
+    def test_deduplicate_preserves_order(self, db, create_paper):
         papers = [
             create_paper(title="First Paper", doi="10.1234/1"),
             create_paper(title="Second Paper", doi="10.1234/2"),
@@ -95,7 +75,7 @@ class TestDeduplication:
 class TestFindPaper:
     """Tests for finding papers in database."""
 
-    def test_find_by_doi(self, db):
+    def test_find_by_doi(self, db, create_paper):
         paper = create_paper(title="Original", doi="10.1234/find")
         db.add_paper(paper)
 
@@ -105,7 +85,7 @@ class TestFindPaper:
         assert found is not None
         assert found["doi"] == "10.1234/find"
 
-    def test_find_by_arxiv_id(self, db):
+    def test_find_by_arxiv_id(self, db, create_paper):
         paper = create_paper(title="Original", arxiv_id="2401.12345")
         db.add_paper(paper)
 
@@ -115,7 +95,7 @@ class TestFindPaper:
         assert found is not None
         assert found["arxiv_id"] == "2401.12345"
 
-    def test_find_by_title(self, db):
+    def test_find_by_title(self, db, create_paper):
         paper = create_paper(title="Unique Specific Title Here")
         db.add_paper(paper)
 
@@ -124,7 +104,7 @@ class TestFindPaper:
 
         assert found is not None
 
-    def test_not_found_returns_none(self, db):
+    def test_not_found_returns_none(self, db, create_paper):
         search_paper = create_paper(title="Nonexistent Paper")
         found = db.find_paper(search_paper)
 
@@ -134,7 +114,7 @@ class TestFindPaper:
 class TestAddPaper:
     """Tests for adding papers to database."""
 
-    def test_add_new_paper(self, db):
+    def test_add_new_paper(self, db, create_paper):
         paper = create_paper(title="Brand New Paper")
         paper_id = db.add_paper(paper)
 
@@ -142,7 +122,7 @@ class TestAddPaper:
         found = db.find_paper(paper)
         assert found is not None
 
-    def test_add_updates_existing(self, db):
+    def test_add_updates_existing(self, db, create_paper):
         paper = create_paper(title="Paper to Update", doi="10.1234/update")
 
         first_id = db.add_paper(paper)
@@ -154,7 +134,7 @@ class TestAddPaper:
 class TestFilterNovel:
     """Tests for novel paper filtering."""
 
-    def test_new_papers_are_novel(self, db):
+    def test_new_papers_are_novel(self, db, create_paper):
         papers = [
             create_paper(title="New Paper 1"),
             create_paper(title="New Paper 2"),
@@ -164,7 +144,7 @@ class TestFilterNovel:
 
         assert len(novel) == 2
 
-    def test_recent_papers_are_not_novel(self, db):
+    def test_recent_papers_are_not_novel(self, db, create_paper):
         # Add a paper to database
         paper = create_paper(title="Already Seen Paper", doi="10.1234/seen")
         db.add_paper(paper)
@@ -186,7 +166,7 @@ class TestRuns:
 
         assert run_id > 0
 
-    def test_add_run_paper(self, db):
+    def test_add_run_paper(self, db, create_paper):
         from datetime import date
 
         run_id = db.create_run(date.today(), "test_topic")

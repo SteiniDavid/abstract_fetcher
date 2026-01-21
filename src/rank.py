@@ -7,6 +7,34 @@ from datetime import date
 
 from .search import Paper, TopicConfig
 
+# Scoring weights
+MUST_TERM_WEIGHT = 2.0
+SHOULD_TERM_WEIGHT = 1.0
+TITLE_MATCH_BONUS = 0.5
+EXCLUDE_TERM_PENALTY = 0.5
+
+# Score combination weights
+KEYWORD_WEIGHT = 3.0
+CITATION_WEIGHT = 1.0
+VENUE_WEIGHT = 1.5
+RECENCY_WEIGHT = 0.5
+
+# Default diversity keywords (used when topic doesn't specify)
+DEFAULT_DIVERSITY_KEYWORDS = [
+    "dagger", "dataset aggregation",
+    "behavioral cloning", "bc",
+    "imitation learning",
+    "covariate shift", "distribution shift", "dataset shift",
+    "compounding error", "error accumulation",
+    "offline", "off-policy",
+    "inverse reinforcement", "irl",
+    "gail", "adversarial",
+    "demonstration", "expert",
+    "policy", "trajectory",
+    "benchmark", "evaluation",
+    "theoretical", "analysis", "bounds",
+]
+
 
 def get_paper_text(paper: Paper) -> str:
     """Get combined lowercase text from paper title and abstract for matching."""
@@ -28,25 +56,25 @@ def compute_keyword_score(paper: Paper, topic: TopicConfig) -> tuple[float, list
     for term in topic.must:
         term_lower = term.lower()
         if term_lower in text:
-            score += 2.0
+            score += MUST_TERM_WEIGHT
             matched_terms.append(term)
 
     # Should terms add to relevance
     for term in topic.should:
         term_lower = term.lower()
         if term_lower in text:
-            score += 1.0
+            score += SHOULD_TERM_WEIGHT
             matched_terms.append(term)
 
             # Bonus for title match
             if term_lower in paper.title.lower():
-                score += 0.5
+                score += TITLE_MATCH_BONUS
 
     # Penalty for exclude terms (soft filter - doesn't eliminate)
     for term in topic.exclude:
         term_lower = term.lower()
         if term_lower in text:
-            score -= 0.5
+            score -= EXCLUDE_TERM_PENALTY
 
     return score, matched_terms
 
@@ -100,10 +128,10 @@ def score_paper(paper: Paper, topic: TopicConfig) -> tuple[float, str]:
 
     # Weighted combination
     total_score = (
-        keyword_score * 3.0    # Relevance is most important
-        + citation_score * 1.0  # Citations matter but don't dominate
-        + venue_score * 1.5     # Good venues are a signal
-        + recency_score * 0.5   # Slight recency preference
+        keyword_score * KEYWORD_WEIGHT    # Relevance is most important
+        + citation_score * CITATION_WEIGHT  # Citations matter but don't dominate
+        + venue_score * VENUE_WEIGHT     # Good venues are a signal
+        + recency_score * RECENCY_WEIGHT   # Slight recency preference
     )
 
     # Generate selection reason
@@ -128,26 +156,17 @@ def score_paper(paper: Paper, topic: TopicConfig) -> tuple[float, str]:
     return total_score, reason
 
 
-def extract_key_phrases(paper: Paper) -> set[str]:
+def extract_key_phrases(paper: Paper, topic: TopicConfig | None = None) -> set[str]:
     """Extract key phrases from paper for diversity checking."""
     text = get_paper_text(paper)
     phrases = set()
 
-    # Common method/concept keywords to track
-    keywords = [
-        "dagger", "dataset aggregation",
-        "behavioral cloning", "bc",
-        "imitation learning",
-        "covariate shift", "distribution shift", "dataset shift",
-        "compounding error", "error accumulation",
-        "offline", "off-policy",
-        "inverse reinforcement", "irl",
-        "gail", "adversarial",
-        "demonstration", "expert",
-        "policy", "trajectory",
-        "benchmark", "evaluation",
-        "theoretical", "analysis", "bounds",
-    ]
+    # Use topic's diversity_keywords if available, otherwise use defaults
+    keywords = (
+        topic.diversity_keywords
+        if topic and topic.diversity_keywords
+        else DEFAULT_DIVERSITY_KEYWORDS
+    )
 
     for kw in keywords:
         if kw in text:
@@ -160,6 +179,7 @@ def select_with_diversity(
     papers: list[Paper],
     n: int,
     max_per_phrase: int = 2,
+    topic: TopicConfig | None = None,
 ) -> list[Paper]:
     """Select top N papers while maintaining diversity.
 
@@ -178,7 +198,7 @@ def select_with_diversity(
         if len(selected) >= n:
             break
 
-        phrases = extract_key_phrases(paper)
+        phrases = extract_key_phrases(paper, topic)
 
         # Check if adding this paper would over-represent any phrase
         would_exceed = False
@@ -234,6 +254,6 @@ def select_papers(
         relevant_papers = papers
 
     # Select with diversity
-    selected = select_with_diversity(relevant_papers, n)
+    selected = select_with_diversity(relevant_papers, n, topic=topic)
 
     return selected
