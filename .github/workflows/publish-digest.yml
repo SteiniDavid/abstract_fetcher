@@ -9,6 +9,7 @@ on:
       - 'runs/**/metadata.json'
       - 'docs/**'
       - 'src/website/**'
+      - '.github/workflows/publish-digest.yml'
   workflow_dispatch:
 
 permissions:
@@ -38,14 +39,22 @@ jobs:
       - name: Build digest pages
         run: uv run python -m src.website.build_site
 
-      - name: Setup Pages
-        uses: actions/configure-pages@v5
+      - name: Setup Ruby
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+          bundler-cache: true
+          working-directory: docs
 
       - name: Build Jekyll site
-        uses: actions/jekyll-build-pages@v1
-        with:
-          source: ./docs
-          destination: ./_site
+        run: |
+          cd docs
+          bundle exec jekyll build --destination ../_site --verbose
+        env:
+          JEKYLL_ENV: production
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
