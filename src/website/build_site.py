@@ -89,7 +89,7 @@ def process_digest(run_dir: Path, output_dir: Path) -> bool:
 
 
 def generate_index(digests_dir: Path, output_path: Path) -> None:
-    """Generate index.md with digest listing grouped by topic."""
+    """Generate index.md with digest listing sorted by date."""
     # Collect all digest metadata
     digests = []
     for digest_file in digests_dir.glob("*.md"):
@@ -112,17 +112,8 @@ def generate_index(digests_dir: Path, output_path: Path) -> None:
                 metadata["filename"] = digest_file.name
                 digests.append(metadata)
 
-    # Group by topic
-    topics = {}
-    for d in digests:
-        topic = d.get("topic_key", "unknown")
-        if topic not in topics:
-            topics[topic] = []
-        topics[topic].append(d)
-
-    # Sort each topic's digests by date (newest first)
-    for topic in topics:
-        topics[topic].sort(key=lambda x: x.get("date", ""), reverse=True)
+    # Sort all digests by date (newest first)
+    digests.sort(key=lambda x: x.get("date", ""), reverse=True)
 
     # Generate index content
     index_content = """---
@@ -130,27 +121,16 @@ layout: default
 title: Paper Digests
 ---
 
-# Paper Digests
-
-A collection of daily paper digests on various research topics.
-
 """
 
-    for topic_key in sorted(topics.keys()):
-        topic_digests = topics[topic_key]
-        # Use the topic name from the first (most recent) digest
-        topic_name = topic_digests[0].get("title", topic_key)
-        index_content += f"## {topic_name}\n\n"
-
-        for d in topic_digests:
-            date = d.get("date", "unknown")
-            num_selected = d.get("num_selected", "?")
-            filename = d.get("filename", "")
-            # Use permalink pattern: /digests/:name/ (Jekyll converts underscores to hyphens)
-            slug = filename.replace(".md", "").replace("_", "-")
-            index_content += f"- [{date}]({{{{ site.baseurl }}}}/digests/{slug}/) - {num_selected} papers\n"
-
-        index_content += "\n"
+    for d in digests:
+        date = d.get("date", "unknown")
+        topic_name = d.get("title", d.get("topic_key", "unknown"))
+        num_selected = d.get("num_selected", "?")
+        filename = d.get("filename", "")
+        # Use permalink pattern: /digests/:name/ (Jekyll converts underscores to hyphens)
+        slug = filename.replace(".md", "").replace("_", "-")
+        index_content += f"- [{date}]({{{{ site.baseurl }}}}/digests/{slug}/) - {topic_name} - {num_selected} papers\n"
 
     with open(output_path, "w") as f:
         f.write(index_content)
