@@ -8,6 +8,7 @@ from pathlib import Path
 import requests
 
 from .base import CachedSearchAdapter, Paper, TopicConfig
+from ..utils.retry import retry_on_http_error, RateLimitError
 
 
 logger = logging.getLogger(__name__)
@@ -25,8 +26,13 @@ class SemanticScholarAdapter(CachedSearchAdapter):
     CACHE_PREFIX = "s2"
     CACHE_EXTENSION = ".json"
 
-    def __init__(self, cache_dir: Path | None = None, api_key: str | None = None):
-        super().__init__(cache_dir)
+    def __init__(
+        self,
+        cache_dir: Path | None = None,
+        api_key: str | None = None,
+        timeout: float | None = None,
+    ):
+        super().__init__(cache_dir, timeout=timeout)
         self.api_key = api_key
 
     def _read_cache(self, cache_path: Path) -> dict | None:
@@ -77,6 +83,18 @@ class SemanticScholarAdapter(CachedSearchAdapter):
         if cached is not None:
             return cached.get("data", [])
 
+        try:
+            data = self._fetch_search_results(query, limit)
+            # Cache the response
+            self._set_cached(query, data)
+            return data.get("data", [])
+        except (requests.RequestException, RateLimitError) as e:
+            logger.warning(f"S2 search failed for query '{query[:50]}...': {e}")
+            return []
+
+    @retry_on_http_error(max_attempts=3, min_wait=1.0, max_wait=30.0)
+    def _fetch_search_results(self, query: str, limit: int) -> dict:
+        """Fetch search results from API with retry logic."""
         # Rate limit
         self._rate_limit()
 
@@ -91,24 +109,23 @@ class SemanticScholarAdapter(CachedSearchAdapter):
             "fields": S2_FIELDS,
         }
 
-        try:
-            response = requests.get(
-                f"{S2_API_BASE}/paper/search",
-                params=params,
-                headers=headers,
-                timeout=30,
+        response = requests.get(
+            f"{S2_API_BASE}/paper/search",
+            params=params,
+            headers=headers,
+            timeout=self.timeout,
+        )
+
+        # Handle rate limit specially
+        if response.status_code == 429:
+            retry_after = response.headers.get("Retry-After")
+            raise RateLimitError(
+                f"Rate limit exceeded for Semantic Scholar API",
+                retry_after=int(retry_after) if retry_after else None,
             )
-            response.raise_for_status()
-            data = response.json()
 
-            # Cache the response
-            self._set_cached(query, data)
-
-            return data.get("data", [])
-
-        except requests.RequestException as e:
-            logger.warning(f"S2 search failed for query '{query[:50]}...': {e}")
-            return []
+        response.raise_for_status()
+        return response.json()
 
     def _parse_paper(self, item: dict) -> Paper | None:
         """Parse S2 API response item into Paper."""

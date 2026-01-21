@@ -9,6 +9,8 @@ from pathlib import Path
 from typing import Protocol
 import re
 
+from ..config.schema import ConfigValidationError, validate_topic_config
+
 
 logger = logging.getLogger(__name__)
 
@@ -101,8 +103,22 @@ class TopicConfig:
     diversity_keywords: list[str] = field(default_factory=list)
 
     @classmethod
-    def from_dict(cls, data: dict) -> "TopicConfig":
-        """Create TopicConfig from YAML dict."""
+    def from_dict(cls, data: dict, topic_key: str | None = None) -> "TopicConfig":
+        """Create TopicConfig from YAML dict.
+
+        Args:
+            data: Dictionary containing topic configuration.
+            topic_key: Optional key name for error messages.
+
+        Returns:
+            TopicConfig instance.
+
+        Raises:
+            ConfigValidationError: If validation fails.
+        """
+        # Validate input data
+        validate_topic_config(data, topic_key)
+
         query = data.get("query", {})
         return cls(
             name=data["name"],
@@ -132,16 +148,19 @@ class CachedSearchAdapter(ABC):
     Provides common functionality:
     - Rate limiting between requests
     - Response caching with configurable file extension
+    - Configurable request timeout
     """
 
     # Subclasses should set these
     RATE_LIMIT_DELAY: float = 3.0  # seconds between requests
     CACHE_PREFIX: str = "cache"  # prefix for cache files
     CACHE_EXTENSION: str = ".json"  # file extension for cache
+    REQUEST_TIMEOUT: float = 30.0  # seconds to wait for response
 
-    def __init__(self, cache_dir: Path | None = None):
+    def __init__(self, cache_dir: Path | None = None, timeout: float | None = None):
         self.cache_dir = cache_dir
         self._last_request_time = 0.0
+        self.timeout = timeout if timeout is not None else self.REQUEST_TIMEOUT
 
         if cache_dir:
             cache_dir.mkdir(parents=True, exist_ok=True)

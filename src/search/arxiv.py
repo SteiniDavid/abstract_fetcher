@@ -9,6 +9,7 @@ from pathlib import Path
 import requests
 
 from .base import CachedSearchAdapter, Paper, TopicConfig
+from ..utils.retry import retry_on_http_error
 
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,18 @@ class ArxivAdapter(CachedSearchAdapter):
         if cached is not None:
             return cached
 
+        try:
+            data = self._fetch_search_results(query, limit)
+            # Cache the response
+            self._set_cached(query, data)
+            return data
+        except requests.RequestException as e:
+            logger.warning(f"arXiv search failed for query '{query[:50]}...': {e}")
+            return ""
+
+    @retry_on_http_error(max_attempts=3, min_wait=1.0, max_wait=30.0)
+    def _fetch_search_results(self, query: str, limit: int) -> str:
+        """Fetch search results from API with retry logic."""
         # Rate limit
         self._rate_limit()
 
@@ -100,23 +113,13 @@ class ArxivAdapter(CachedSearchAdapter):
             "sortOrder": "descending",
         }
 
-        try:
-            response = requests.get(
-                ARXIV_API_BASE,
-                params=params,
-                timeout=30,
-            )
-            response.raise_for_status()
-            data = response.text
-
-            # Cache the response
-            self._set_cached(query, data)
-
-            return data
-
-        except requests.RequestException as e:
-            logger.warning(f"arXiv search failed for query '{query[:50]}...': {e}")
-            return ""
+        response = requests.get(
+            ARXIV_API_BASE,
+            params=params,
+            timeout=self.timeout,
+        )
+        response.raise_for_status()
+        return response.text
 
     def _parse_entry(self, entry: ET.Element) -> Paper | None:
         """Parse arXiv Atom entry into Paper."""

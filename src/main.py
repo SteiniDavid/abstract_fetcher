@@ -16,6 +16,8 @@ from .rank import select_papers
 from .acquire import download_pdfs
 from .extract import extract_text
 from .digest import generate_digest
+from .config.schema import ConfigValidationError
+from .errors import ErrorTracker, ErrorCategory, ErrorSeverity
 
 
 logging.basicConfig(
@@ -26,13 +28,23 @@ logger = logging.getLogger(__name__)
 
 
 def load_topics(config_path: Path) -> dict[str, TopicConfig]:
-    """Load topic configurations from YAML."""
+    """Load topic configurations from YAML.
+
+    Args:
+        config_path: Path to the topics.yaml configuration file.
+
+    Returns:
+        Dictionary mapping topic keys to TopicConfig objects.
+
+    Raises:
+        ConfigValidationError: If any topic configuration is invalid.
+    """
     with open(config_path) as f:
         data = yaml.safe_load(f)
 
     topics = {}
     for key, topic_data in data.get("topics", {}).items():
-        topics[key] = TopicConfig.from_dict(topic_data)
+        topics[key] = TopicConfig.from_dict(topic_data, topic_key=key)
     return topics
 
 
@@ -52,33 +64,43 @@ def get_paper_id(paper) -> str:
 def run_searches(
     topic: TopicConfig,
     cache_dir: Path,
-    failures: dict,
+    error_tracker: ErrorTracker,
+    timeout: float | None = None,
 ) -> list[Paper]:
     """Run searches across all configured sources.
 
-    Returns list of candidate papers.
+    Args:
+        topic: Topic configuration for the search.
+        cache_dir: Directory to cache search results.
+        error_tracker: ErrorTracker instance to record failures.
+        timeout: Optional request timeout in seconds.
+
+    Returns:
+        List of candidate papers from all sources.
     """
     candidates: list[Paper] = []
 
     # Semantic Scholar
     try:
-        semantic_scholar_adapter = SemanticScholarAdapter(cache_dir=cache_dir)
+        semantic_scholar_adapter = SemanticScholarAdapter(
+            cache_dir=cache_dir, timeout=timeout
+        )
         s2_papers = semantic_scholar_adapter.search(topic, max_results=100)
         logger.info(f"  Semantic Scholar: {len(s2_papers)} papers")
         candidates.extend(s2_papers)
     except Exception as e:
         logger.warning(f"  Semantic Scholar search failed: {e}")
-        failures["search"].append({"source": "semantic_scholar", "error": str(e)})
+        error_tracker.add_search_error("semantic_scholar", str(e))
 
     # arXiv
     try:
-        arxiv_adapter = ArxivAdapter(cache_dir=cache_dir)
+        arxiv_adapter = ArxivAdapter(cache_dir=cache_dir, timeout=timeout)
         arxiv_papers = arxiv_adapter.search(topic, max_results=100)
         logger.info(f"  arXiv: {len(arxiv_papers)} papers")
         candidates.extend(arxiv_papers)
     except Exception as e:
         logger.warning(f"  arXiv search failed: {e}")
-        failures["search"].append({"source": "arxiv", "error": str(e)})
+        error_tracker.add_search_error("arxiv", str(e))
 
     return candidates
 
@@ -116,21 +138,28 @@ def download_and_extract(
     selected: list,
     run_dir: Path,
     extract_conclusion: bool,
-    failures: dict,
+    error_tracker: ErrorTracker,
 ) -> tuple[list[dict], list[dict], int]:
     """Download PDFs and extract text from selected papers.
 
-    Returns (download_results, extract_results, downloaded_count).
+    Args:
+        selected: List of selected papers to download.
+        run_dir: Run output directory.
+        extract_conclusion: Whether to extract conclusions from PDFs.
+        error_tracker: ErrorTracker instance to record failures.
+
+    Returns:
+        Tuple of (download_results, extract_results, downloaded_count).
     """
     logger.info("Downloading PDFs...")
     download_results = download_pdfs(selected, run_dir / "papers")
 
     for paper, result in zip(selected, download_results):
         if result["status"] == "failed":
-            failures["download"].append({
-                "title": paper.title,
-                "error": result.get("error", "Unknown error"),
-            })
+            error_tracker.add_download_error(
+                paper.title,
+                result.get("error", "Unknown error"),
+            )
 
     downloaded_count = sum(1 for r in download_results if r["status"] == "success")
     logger.info(f"  Downloaded: {downloaded_count}/{len(selected)}")
@@ -140,11 +169,11 @@ def download_and_extract(
 
     for paper, result in zip(selected, extract_results):
         if result.get("abstract_status") == "failed":
-            failures["extract"].append({
-                "title": paper.title,
-                "type": "abstract",
-                "error": result.get("abstract_error", "Unknown error"),
-            })
+            error_tracker.add_extract_error(
+                paper.title,
+                result.get("abstract_error", "Unknown error"),
+                error_type="abstract",
+            )
 
     return download_results, extract_results, downloaded_count
 
@@ -179,9 +208,23 @@ def save_run_metadata(
     selected: list,
     downloaded_count: int,
     extract_results: list[dict],
-    failures: dict,
+    error_tracker: ErrorTracker,
 ) -> None:
-    """Save run metadata and failures to JSON files."""
+    """Save run metadata and failures to JSON files.
+
+    Args:
+        run_dir: Run output directory.
+        topic_key: Topic key string.
+        topic: Topic configuration.
+        run_date: Date of the run.
+        candidates: All candidate papers found.
+        unique_papers: Unique papers after deduplication.
+        novel_papers: Novel papers not seen recently.
+        selected: Selected papers for the digest.
+        downloaded_count: Number of successfully downloaded PDFs.
+        extract_results: Results from text extraction.
+        error_tracker: ErrorTracker instance with recorded failures.
+    """
     metadata = {
         "topic_key": topic_key,
         "topic_name": topic.name,
@@ -197,8 +240,9 @@ def save_run_metadata(
     with open(run_dir / "metadata.json", "w") as f:
         json.dump(metadata, f, indent=2)
 
+    # Save failures in legacy format for backwards compatibility
     with open(run_dir / "failures.json", "w") as f:
-        json.dump(failures, f, indent=2)
+        json.dump(error_tracker.to_legacy_dict(), f, indent=2)
 
 
 def record_papers_in_db(
@@ -281,6 +325,12 @@ def record_papers_in_db(
     default=Path("runs"),
     help="Path to runs output directory",
 )
+@click.option(
+    "--timeout",
+    type=float,
+    default=None,
+    help="Request timeout in seconds for API calls (default: 30)",
+)
 def main(
     topic_key: str | None,
     run_date: date | None,
@@ -290,18 +340,22 @@ def main(
     config_dir: Path,
     data_dir: Path,
     runs_dir: Path,
+    timeout: float | None,
 ) -> None:
     """Daily paper digest pipeline for scholarly paper discovery.
 
     Search academic sources, select top papers, download PDFs, and generate
     a readable digest markdown file.
     """
-    # Load topics
+    # Load topics with validation
     topics_file = config_dir / "topics.yaml"
     if not topics_file.exists():
         raise click.ClickException(f"Topics config not found: {topics_file}")
 
-    topics = load_topics(topics_file)
+    try:
+        topics = load_topics(topics_file)
+    except ConfigValidationError as e:
+        raise click.ClickException(f"Invalid configuration: {e}")
 
     # List topics mode
     if list_topics:
@@ -334,6 +388,9 @@ def main(
     logger.info(f"Starting paper digest for topic: {topic.name}")
     logger.info(f"Run date: {run_date}, Papers: {num_papers}, Conclusions: {extract_conclusion}")
 
+    # Initialize error tracker
+    error_tracker = ErrorTracker()
+
     # Initialize database
     data_dir.mkdir(parents=True, exist_ok=True)
     db = PaperDatabase(data_dir / "library.sqlite")
@@ -344,8 +401,7 @@ def main(
 
     # Search phase
     logger.info("Searching for papers...")
-    failures: dict[str, list] = {"search": [], "download": [], "extract": []}
-    candidates = run_searches(topic, data_dir / "cache", failures)
+    candidates = run_searches(topic, data_dir / "cache", error_tracker, timeout=timeout)
 
     if not candidates:
         raise click.ClickException("No papers found from any source!")
@@ -368,7 +424,7 @@ def main(
 
     # Download PDFs and extract text
     download_results, extract_results, downloaded_count = download_and_extract(
-        selected, run_dir, extract_conclusion, failures
+        selected, run_dir, extract_conclusion, error_tracker
     )
 
     # Record papers in database
@@ -392,16 +448,15 @@ def main(
     save_run_metadata(
         run_dir, topic_key, topic, run_date,
         candidates, unique_papers, novel_papers, selected,
-        downloaded_count, extract_results, failures
+        downloaded_count, extract_results, error_tracker
     )
 
     logger.info("Done!")
     logger.info(f"  Digest: {digest_path}")
     logger.info(f"  Selected: {len(selected)}, Downloaded: {downloaded_count}")
 
-    total_failures = sum(len(v) for v in failures.values())
-    if total_failures > 0:
-        logger.warning(f"  Failures: {total_failures} (see failures.json)")
+    if error_tracker.total_count > 0:
+        logger.warning(f"  Failures: {error_tracker.total_count} (see failures.json)")
 
 
 if __name__ == "__main__":
