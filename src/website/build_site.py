@@ -146,8 +146,8 @@ A collection of daily paper digests on various research topics.
             date = d.get("date", "unknown")
             num_selected = d.get("num_selected", "?")
             filename = d.get("filename", "")
-            # Use permalink pattern: /digests/:name/
-            slug = filename.replace(".md", "")
+            # Use permalink pattern: /digests/:name/ (Jekyll converts underscores to hyphens)
+            slug = filename.replace(".md", "").replace("_", "-")
             index_content += f"- [{date}]({{{{ site.baseurl }}}}/digests/{slug}/) - {num_selected} papers\n"
 
         index_content += "\n"
