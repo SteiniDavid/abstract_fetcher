@@ -2,13 +2,35 @@
 ---
 
 // Variables
-$primary-color: #2c5282;
-$accent-color: #4a90a4;
-$text-color: #2d3748;
-$light-bg: #f7fafc;
-$border-color: #e2e8f0;
 $font-serif: Georgia, "Times New Roman", serif;
 $font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+
+// CSS Custom Properties for theming
+:root {
+  --primary-color: #2c5282;
+  --accent-color: #4a90a4;
+  --text-color: #2d3748;
+  --text-muted: #718096;
+  --bg-color: #fff;
+  --bg-light: #f7fafc;
+  --border-color: #e2e8f0;
+  --header-bg: #2c5282;
+  --card-shadow: rgba(0, 0, 0, 0.1);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary-color: #63b3ed;
+    --accent-color: #76c7d4;
+    --text-color: #e2e8f0;
+    --text-muted: #a0aec0;
+    --bg-color: #1a202c;
+    --bg-light: #2d3748;
+    --border-color: #4a5568;
+    --header-bg: #2d3748;
+    --card-shadow: rgba(0, 0, 0, 0.3);
+  }
+}
 
 // Base styles
 * {
@@ -21,11 +43,11 @@ html {
 
 body {
   font-family: $font-serif;
-  color: $text-color;
+  color: var(--text-color);
   line-height: 1.7;
   margin: 0;
   padding: 0;
-  background: #fff;
+  background: var(--bg-color);
 }
 
 .container {
@@ -44,11 +66,11 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 h1 { font-size: 2rem; }
-h2 { font-size: 1.5rem; border-bottom: 2px solid $border-color; padding-bottom: 0.3em; }
+h2 { font-size: 1.5rem; border-bottom: 2px solid var(--border-color); padding-bottom: 0.3em; }
 h3 { font-size: 1.25rem; }
 
 a {
-  color: $primary-color;
+  color: var(--primary-color);
   text-decoration: none;
   &:hover { text-decoration: underline; }
 }
@@ -59,7 +81,7 @@ p {
 
 // Header
 .site-header {
-  background: $primary-color;
+  background: var(--header-bg);
   color: #fff;
   padding: 2rem 0;
   margin-bottom: 2rem;
@@ -84,9 +106,9 @@ p {
 .site-footer {
   margin-top: 3rem;
   padding: 1.5rem 0;
-  border-top: 1px solid $border-color;
+  border-top: 1px solid var(--border-color);
   font-size: 0.875rem;
-  color: #718096;
+  color: var(--text-muted);
   text-align: center;
 }
 
@@ -99,8 +121,8 @@ p {
 }
 
 .stat-box {
-  background: $light-bg;
-  border: 1px solid $border-color;
+  background: var(--bg-light);
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 1rem;
   text-align: center;
@@ -109,7 +131,7 @@ p {
     display: block;
     font-size: 1.75rem;
     font-weight: 700;
-    color: $primary-color;
+    color: var(--primary-color);
     font-family: $font-sans;
   }
 
@@ -118,7 +140,7 @@ p {
     font-size: 0.75rem;
     text-transform: uppercase;
     letter-spacing: 0.05em;
-    color: #718096;
+    color: var(--text-muted);
     margin-top: 0.25rem;
   }
 }
@@ -133,7 +155,7 @@ p {
 
   time {
     font-size: 0.9rem;
-    color: #718096;
+    color: var(--text-muted);
   }
 }
 
@@ -144,8 +166,8 @@ p {
     margin-top: 2.5rem;
     padding: 1rem;
     padding-left: 1.25rem;
-    background: $light-bg;
-    border-left: 4px solid $accent-color;
+    background: var(--bg-light);
+    border-left: 4px solid var(--accent-color);
     border-bottom: none;
   }
 
@@ -162,7 +184,7 @@ p {
   // Abstract and conclusion sections
   h3 {
     font-size: 0.95rem;
-    color: #4a5568;
+    color: var(--text-muted);
     margin-top: 1.25rem;
     margin-bottom: 0.5rem;
   }
@@ -171,7 +193,7 @@ p {
   blockquote, .abstract-content {
     margin: 0.5rem 0;
     padding: 1rem;
-    background: $light-bg;
+    background: var(--bg-light);
     border-radius: 4px;
     font-size: 0.9rem;
   }
@@ -179,7 +201,7 @@ p {
   // Horizontal rules between papers
   hr {
     border: none;
-    border-top: 1px solid $border-color;
+    border-top: 1px solid var(--border-color);
     margin: 2rem 0;
   }
 }
@@ -188,9 +210,9 @@ p {
 .paper-card {
   margin: 1.5rem 0;
   padding: 1.25rem;
-  background: #fff;
-  border-left: 4px solid $accent-color;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  background: var(--bg-color);
+  border-left: 4px solid var(--accent-color);
+  box-shadow: 0 1px 3px var(--card-shadow);
 
   .paper-title {
     font-size: 1.1rem;
@@ -199,7 +221,7 @@ p {
 
   .paper-authors {
     font-size: 0.9rem;
-    color: #718096;
+    color: var(--text-muted);
     margin: 0.25rem 0;
   }
 
@@ -217,7 +239,7 @@ details {
     cursor: pointer;
     font-weight: 600;
     font-size: 0.9rem;
-    color: $primary-color;
+    color: var(--primary-color);
     padding: 0.5rem 0;
 
     &:hover { text-decoration: underline; }
@@ -229,7 +251,7 @@ details {
 
   > *:not(summary) {
     padding: 1rem;
-    background: $light-bg;
+    background: var(--bg-light);
     border-radius: 4px;
     font-size: 0.9rem;
   }
@@ -239,7 +261,7 @@ details {
 .digest-nav {
   margin-top: 3rem;
   padding-top: 1.5rem;
-  border-top: 1px solid $border-color;
+  border-top: 1px solid var(--border-color);
 }
 
 // Index page - digest list
@@ -249,7 +271,7 @@ main > ul {
 
   li {
     padding: 0.5rem 0;
-    border-bottom: 1px solid $border-color;
+    border-bottom: 1px solid var(--border-color);
 
     &:last-child { border-bottom: none; }
   }
