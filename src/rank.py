@@ -8,6 +8,11 @@ from datetime import date
 from .search import Paper, TopicConfig
 
 
+def get_paper_text(paper: Paper) -> str:
+    """Get combined lowercase text from paper title and abstract for matching."""
+    return f"{paper.title} {paper.abstract or ''}".lower()
+
+
 def compute_keyword_score(paper: Paper, topic: TopicConfig) -> tuple[float, list[str]]:
     """Compute keyword relevance score and return matched terms.
 
@@ -17,7 +22,7 @@ def compute_keyword_score(paper: Paper, topic: TopicConfig) -> tuple[float, list
     matched_terms = []
 
     # Combine title and abstract for matching
-    text = f"{paper.title} {paper.abstract or ''}".lower()
+    text = get_paper_text(paper)
 
     # Must terms are required - give high weight
     for term in topic.must:
@@ -125,7 +130,7 @@ def score_paper(paper: Paper, topic: TopicConfig) -> tuple[float, str]:
 
 def extract_key_phrases(paper: Paper) -> set[str]:
     """Extract key phrases from paper for diversity checking."""
-    text = f"{paper.title} {paper.abstract or ''}".lower()
+    text = get_paper_text(paper)
     phrases = set()
 
     # Common method/concept keywords to track
@@ -219,7 +224,7 @@ def select_papers(
     # Filter out papers with very low relevance (no must terms matched)
     relevant_papers = []
     for paper in papers:
-        text = f"{paper.title} {paper.abstract or ''}".lower()
+        text = get_paper_text(paper)
         has_must = any(term.lower() in text for term in topic.must)
         if has_must or paper.score >= 1.0:
             relevant_papers.append(paper)

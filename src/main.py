@@ -44,6 +44,189 @@ def create_run_dir(base_path: Path, run_date: date, topic_key: str) -> Path:
     return run_dir
 
 
+def get_paper_id(paper) -> str:
+    """Get a unique identifier for a paper for deduplication."""
+    return paper.doi or paper.arxiv_id or paper.title_normalized
+
+
+def run_searches(
+    topic: TopicConfig,
+    cache_dir: Path,
+    failures: dict,
+) -> list:
+    """Run searches across all configured sources.
+
+    Returns list of candidate papers.
+    """
+    from .search import Paper
+
+    candidates: list[Paper] = []
+
+    # Semantic Scholar
+    try:
+        semantic_scholar_adapter = SemanticScholarAdapter(cache_dir=cache_dir)
+        s2_papers = semantic_scholar_adapter.search(topic, max_results=100)
+        logger.info(f"  Semantic Scholar: {len(s2_papers)} papers")
+        candidates.extend(s2_papers)
+    except Exception as e:
+        logger.warning(f"  Semantic Scholar search failed: {e}")
+        failures["search"].append({"source": "semantic_scholar", "error": str(e)})
+
+    # arXiv
+    try:
+        arxiv_adapter = ArxivAdapter(cache_dir=cache_dir)
+        arxiv_papers = arxiv_adapter.search(topic, max_results=100)
+        logger.info(f"  arXiv: {len(arxiv_papers)} papers")
+        candidates.extend(arxiv_papers)
+    except Exception as e:
+        logger.warning(f"  arXiv search failed: {e}")
+        failures["search"].append({"source": "arxiv", "error": str(e)})
+
+    return candidates
+
+
+def deduplicate_and_filter(
+    candidates: list,
+    db: PaperDatabase,
+    num_papers: int,
+) -> tuple[list, list, list]:
+    """Deduplicate candidates and filter for novel papers.
+
+    Returns (unique_papers, novel_papers, papers_to_rank).
+    """
+    unique_papers = db.deduplicate(candidates)
+    novel_papers = db.filter_novel(unique_papers, days=365)
+    logger.info(f"  After dedup: {len(unique_papers)}, Novel: {len(novel_papers)}")
+
+    # If not enough novel papers, include some repeats
+    papers_to_rank = list(novel_papers)  # Make a copy
+    if len(novel_papers) < num_papers:
+        logger.info(f"  Not enough novel papers, including {num_papers - len(novel_papers)} recent ones")
+        seen_ids = {get_paper_id(p) for p in novel_papers}
+        for p in unique_papers:
+            if len(papers_to_rank) >= num_papers * 2:
+                break
+            pid = get_paper_id(p)
+            if pid not in seen_ids:
+                papers_to_rank.append(p)
+                seen_ids.add(pid)
+
+    return unique_papers, novel_papers, papers_to_rank
+
+
+def download_and_extract(
+    selected: list,
+    run_dir: Path,
+    extract_conclusion: bool,
+    failures: dict,
+) -> tuple[list[dict], list[dict], int]:
+    """Download PDFs and extract text from selected papers.
+
+    Returns (download_results, extract_results, downloaded_count).
+    """
+    logger.info("Downloading PDFs...")
+    download_results = download_pdfs(selected, run_dir / "papers")
+
+    for paper, result in zip(selected, download_results):
+        if result["status"] == "failed":
+            failures["download"].append({
+                "title": paper.title,
+                "error": result.get("error", "Unknown error"),
+            })
+
+    downloaded_count = sum(1 for r in download_results if r["status"] == "success")
+    logger.info(f"  Downloaded: {downloaded_count}/{len(selected)}")
+
+    logger.info("Extracting text...")
+    extract_results = extract_text(selected, download_results, extract_conclusion)
+
+    for paper, result in zip(selected, extract_results):
+        if result.get("abstract_status") == "failed":
+            failures["extract"].append({
+                "title": paper.title,
+                "type": "abstract",
+                "error": result.get("abstract_error", "Unknown error"),
+            })
+
+    return download_results, extract_results, downloaded_count
+
+
+def save_candidates(
+    papers_to_rank: list,
+    selected: list,
+    run_dir: Path,
+) -> None:
+    """Save all candidates with scores to JSON."""
+    selected_ids = {get_paper_id(p) for p in selected}
+    all_candidates = []
+
+    for paper in sorted(papers_to_rank, key=lambda p: p.score, reverse=True):
+        paper_id = get_paper_id(paper)
+        candidate_data = paper.to_dict(include_abstract=False)
+        candidate_data["selected"] = paper_id in selected_ids
+        all_candidates.append(candidate_data)
+
+    with open(run_dir / "candidates.json", "w") as f:
+        json.dump(all_candidates, f, indent=2)
+
+
+def save_run_metadata(
+    run_dir: Path,
+    topic_key: str,
+    topic: TopicConfig,
+    run_date: date,
+    candidates: list,
+    unique_papers: list,
+    novel_papers: list,
+    selected: list,
+    downloaded_count: int,
+    extract_results: list[dict],
+    failures: dict,
+) -> None:
+    """Save run metadata and failures to JSON files."""
+    metadata = {
+        "topic_key": topic_key,
+        "topic_name": topic.name,
+        "run_date": run_date.isoformat(),
+        "num_candidates": len(candidates),
+        "num_unique": len(unique_papers),
+        "num_novel": len(novel_papers),
+        "num_selected": len(selected),
+        "num_downloaded": downloaded_count,
+        "num_abstracts": sum(1 for r in extract_results if r.get("abstract")),
+    }
+
+    with open(run_dir / "metadata.json", "w") as f:
+        json.dump(metadata, f, indent=2)
+
+    with open(run_dir / "failures.json", "w") as f:
+        json.dump(failures, f, indent=2)
+
+
+def record_papers_in_db(
+    db: PaperDatabase,
+    run_date: date,
+    topic_key: str,
+    selected: list,
+    download_results: list[dict],
+    extract_results: list[dict],
+) -> None:
+    """Record selected papers in the database."""
+    run_id = db.create_run(run_date, topic_key)
+
+    for i, (paper, dl_result, ex_result) in enumerate(zip(selected, download_results, extract_results)):
+        paper_id = db.add_paper(paper)
+        db.add_run_paper(
+            run_id=run_id,
+            paper_id=paper_id,
+            rank=i + 1,
+            selected_reason=paper.selected_reason,
+            pdf_path=dl_result.get("path"),
+            abstract_source=ex_result.get("abstract_source"),
+            extraction_status="success" if ex_result.get("abstract") else "failed",
+        )
+
+
 @click.command()
 @click.option(
     "--topic",
@@ -109,7 +292,7 @@ def main(
     config_dir: Path,
     data_dir: Path,
     runs_dir: Path,
-):
+) -> None:
     """Daily paper digest pipeline for scholarly paper discovery.
 
     Search academic sources, select top papers, download PDFs, and generate
@@ -163,28 +346,8 @@ def main(
 
     # Search phase
     logger.info("Searching for papers...")
-    candidates = []
-    failures = {"search": [], "download": [], "extract": []}
-
-    # Semantic Scholar
-    try:
-        s2_adapter = SemanticScholarAdapter(cache_dir=data_dir / "cache")
-        s2_papers = s2_adapter.search(topic, max_results=100)
-        logger.info(f"  Semantic Scholar: {len(s2_papers)} papers")
-        candidates.extend(s2_papers)
-    except Exception as e:
-        logger.warning(f"  Semantic Scholar search failed: {e}")
-        failures["search"].append({"source": "semantic_scholar", "error": str(e)})
-
-    # arXiv
-    try:
-        arxiv_adapter = ArxivAdapter(cache_dir=data_dir / "cache")
-        arxiv_papers = arxiv_adapter.search(topic, max_results=100)
-        logger.info(f"  arXiv: {len(arxiv_papers)} papers")
-        candidates.extend(arxiv_papers)
-    except Exception as e:
-        logger.warning(f"  arXiv search failed: {e}")
-        failures["search"].append({"source": "arxiv", "error": str(e)})
+    failures: dict[str, list] = {"search": [], "download": [], "extract": []}
+    candidates = run_searches(topic, data_dir / "cache", failures)
 
     if not candidates:
         raise click.ClickException("No papers found from any source!")
@@ -193,76 +356,27 @@ def main(
 
     # Dedup and filter previously seen
     logger.info("Deduplicating and filtering...")
-    unique_papers = db.deduplicate(candidates)
-    novel_papers = db.filter_novel(unique_papers, days=365)
-    logger.info(f"  After dedup: {len(unique_papers)}, Novel: {len(novel_papers)}")
-
-    # If not enough novel papers, include some repeats
-    papers_to_rank = novel_papers
-    if len(novel_papers) < num_papers:
-        logger.info(f"  Not enough novel papers, including {num_papers - len(novel_papers)} recent ones")
-        seen_ids = {p.doi or p.arxiv_id or p.title_normalized for p in novel_papers}
-        for p in unique_papers:
-            if len(papers_to_rank) >= num_papers * 2:
-                break
-            pid = p.doi or p.arxiv_id or p.title_normalized
-            if pid not in seen_ids:
-                papers_to_rank.append(p)
-                seen_ids.add(pid)
+    unique_papers, novel_papers, papers_to_rank = deduplicate_and_filter(
+        candidates, db, num_papers
+    )
 
     # Rank and select
     logger.info("Ranking and selecting papers...")
     selected = select_papers(papers_to_rank, topic, num_papers)
     logger.info(f"Selected {len(selected)} papers")
 
-    # Save all candidates with scores (papers_to_rank now have scores populated)
-    selected_ids = {p.doi or p.arxiv_id or p.title_normalized for p in selected}
-    all_candidates = []
-    for paper in sorted(papers_to_rank, key=lambda p: p.score, reverse=True):
-        paper_id = paper.doi or paper.arxiv_id or paper.title_normalized
-        candidate_data = paper.to_dict(include_abstract=False)
-        candidate_data["selected"] = paper_id in selected_ids
-        all_candidates.append(candidate_data)
+    # Save all candidates with scores
+    save_candidates(papers_to_rank, selected, run_dir)
 
-    with open(run_dir / "candidates.json", "w") as f:
-        json.dump(all_candidates, f, indent=2)
-
-    # Download PDFs
-    logger.info("Downloading PDFs...")
-    download_results = download_pdfs(selected, run_dir / "papers")
-    for paper, result in zip(selected, download_results):
-        if result["status"] == "failed":
-            failures["download"].append({
-                "title": paper.title,
-                "error": result.get("error", "Unknown error"),
-            })
-    downloaded_count = sum(1 for r in download_results if r["status"] == "success")
-    logger.info(f"  Downloaded: {downloaded_count}/{len(selected)}")
-
-    # Extract text
-    logger.info("Extracting text...")
-    extract_results = extract_text(selected, download_results, extract_conclusion)
-    for paper, result in zip(selected, extract_results):
-        if result.get("abstract_status") == "failed":
-            failures["extract"].append({
-                "title": paper.title,
-                "type": "abstract",
-                "error": result.get("abstract_error", "Unknown error"),
-            })
+    # Download PDFs and extract text
+    download_results, extract_results, downloaded_count = download_and_extract(
+        selected, run_dir, extract_conclusion, failures
+    )
 
     # Record papers in database
-    run_id = db.create_run(run_date, topic_key)
-    for i, (paper, dl_result, ex_result) in enumerate(zip(selected, download_results, extract_results)):
-        paper_id = db.add_paper(paper)
-        db.add_run_paper(
-            run_id=run_id,
-            paper_id=paper_id,
-            rank=i + 1,
-            selected_reason=paper.selected_reason,
-            pdf_path=dl_result.get("path"),
-            abstract_source=ex_result.get("abstract_source"),
-            extraction_status="success" if ex_result.get("abstract") else "failed",
-        )
+    record_papers_in_db(
+        db, run_date, topic_key, selected, download_results, extract_results
+    )
 
     # Generate digest
     logger.info("Generating digest...")
@@ -276,24 +390,12 @@ def main(
     )
     logger.info(f"Digest written to: {digest_path}")
 
-    # Save metadata
-    metadata = {
-        "topic_key": topic_key,
-        "topic_name": topic.name,
-        "run_date": run_date.isoformat(),
-        "num_candidates": len(candidates),
-        "num_unique": len(unique_papers),
-        "num_novel": len(novel_papers),
-        "num_selected": len(selected),
-        "num_downloaded": downloaded_count,
-        "num_abstracts": sum(1 for r in extract_results if r.get("abstract")),
-    }
-    with open(run_dir / "metadata.json", "w") as f:
-        json.dump(metadata, f, indent=2)
-
-    # Save failures
-    with open(run_dir / "failures.json", "w") as f:
-        json.dump(failures, f, indent=2)
+    # Save metadata and failures
+    save_run_metadata(
+        run_dir, topic_key, topic, run_date,
+        candidates, unique_papers, novel_papers, selected,
+        downloaded_count, extract_results, failures
+    )
 
     logger.info("Done!")
     logger.info(f"  Digest: {digest_path}")

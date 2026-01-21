@@ -74,8 +74,15 @@ def extract_text_from_pdf(pdf_path: str | Path) -> str:
         doc.close()
         return "\n".join(text_parts)
 
-    except Exception as e:
-        logger.warning(f"Failed to extract text from {pdf_path}: {e}")
+    except FileNotFoundError:
+        logger.warning(f"PDF file not found: {pdf_path}")
+        return ""
+    except RuntimeError as e:
+        # PyMuPDF raises RuntimeError for corrupt/invalid PDFs
+        logger.warning(f"Failed to parse PDF {pdf_path}: {e}")
+        return ""
+    except (IOError, OSError) as e:
+        logger.warning(f"IO error reading PDF {pdf_path}: {e}")
         return ""
 
 

@@ -1,25 +1,19 @@
 """arXiv search adapter."""
 
-import hashlib
-import json
 import logging
 import re
-import time
 import xml.etree.ElementTree as ET
 from pathlib import Path
 
 import requests
 
-from .base import Paper, TopicConfig
+from .base import CachedSearchAdapter, Paper, TopicConfig
 
 
 logger = logging.getLogger(__name__)
 
 # arXiv API
-ARXIV_API_BASE = "http://export.arxiv.org/api/query"
-
-# Rate limiting: be polite to arXiv
-RATE_LIMIT_DELAY = 3.0  # seconds between requests
+ARXIV_API_BASE = "https://export.arxiv.org/api/query"
 
 # XML namespaces
 NS = {
@@ -28,54 +22,26 @@ NS = {
 }
 
 
-class ArxivAdapter:
+class ArxivAdapter(CachedSearchAdapter):
     """Search adapter for arXiv API."""
 
-    def __init__(self, cache_dir: Path | None = None):
-        self.cache_dir = cache_dir
-        self._last_request_time = 0.0
+    # Rate limiting: be polite to arXiv
+    RATE_LIMIT_DELAY = 3.0
+    CACHE_PREFIX = "arxiv"
+    CACHE_EXTENSION = ".xml"
 
-        if cache_dir:
-            cache_dir.mkdir(parents=True, exist_ok=True)
-
-    def _rate_limit(self):
-        """Ensure we don't exceed rate limits."""
-        elapsed = time.time() - self._last_request_time
-        if elapsed < RATE_LIMIT_DELAY:
-            time.sleep(RATE_LIMIT_DELAY - elapsed)
-        self._last_request_time = time.time()
-
-    def _cache_key(self, query: str) -> str:
-        """Generate cache key for a query."""
-        return hashlib.sha256(query.encode()).hexdigest()[:16]
-
-    def _get_cached(self, query: str) -> str | None:
-        """Get cached response if available."""
-        if not self.cache_dir:
+    def _read_cache(self, cache_path: Path) -> str | None:
+        """Read cached XML data."""
+        try:
+            with open(cache_path) as f:
+                return f.read()
+        except IOError:
             return None
 
-        cache_file = self.cache_dir / f"arxiv_{self._cache_key(query)}.xml"
-        if cache_file.exists():
-            try:
-                with open(cache_file) as f:
-                    data = f.read()
-                logger.debug(f"Cache hit for query: {query[:50]}...")
-                return data
-            except IOError:
-                pass
-        return None
-
-    def _set_cached(self, query: str, data: str):
-        """Cache response data."""
-        if not self.cache_dir:
-            return
-
-        cache_file = self.cache_dir / f"arxiv_{self._cache_key(query)}.xml"
-        try:
-            with open(cache_file, "w") as f:
-                f.write(data)
-        except IOError as e:
-            logger.warning(f"Failed to cache response: {e}")
+    def _write_cache(self, cache_path: Path, data: str) -> None:
+        """Write XML data to cache file."""
+        with open(cache_path, "w") as f:
+            f.write(data)
 
     def _build_queries(self, topic: TopicConfig) -> list[str]:
         """Build arXiv search queries from topic configuration.

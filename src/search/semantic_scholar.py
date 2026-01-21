@@ -1,14 +1,12 @@
 """Semantic Scholar search adapter."""
 
-import hashlib
 import json
 import logging
-import time
 from pathlib import Path
 
 import requests
 
-from .base import Paper, TopicConfig
+from .base import CachedSearchAdapter, Paper, TopicConfig
 
 
 logger = logging.getLogger(__name__)
@@ -17,59 +15,31 @@ logger = logging.getLogger(__name__)
 S2_API_BASE = "https://api.semanticscholar.org/graph/v1"
 S2_FIELDS = "paperId,title,authors,year,venue,publicationTypes,externalIds,url,openAccessPdf,abstract,citationCount"
 
-# Rate limiting: 100 requests per 5 minutes without API key
-RATE_LIMIT_DELAY = 3.1  # seconds between requests
 
-
-class SemanticScholarAdapter:
+class SemanticScholarAdapter(CachedSearchAdapter):
     """Search adapter for Semantic Scholar API."""
 
+    # Rate limiting: 100 requests per 5 minutes without API key
+    RATE_LIMIT_DELAY = 3.1
+    CACHE_PREFIX = "s2"
+    CACHE_EXTENSION = ".json"
+
     def __init__(self, cache_dir: Path | None = None, api_key: str | None = None):
-        self.cache_dir = cache_dir
+        super().__init__(cache_dir)
         self.api_key = api_key
-        self._last_request_time = 0.0
 
-        if cache_dir:
-            cache_dir.mkdir(parents=True, exist_ok=True)
-
-    def _rate_limit(self):
-        """Ensure we don't exceed rate limits."""
-        elapsed = time.time() - self._last_request_time
-        if elapsed < RATE_LIMIT_DELAY:
-            time.sleep(RATE_LIMIT_DELAY - elapsed)
-        self._last_request_time = time.time()
-
-    def _cache_key(self, query: str) -> str:
-        """Generate cache key for a query."""
-        return hashlib.sha256(query.encode()).hexdigest()[:16]
-
-    def _get_cached(self, query: str) -> dict | None:
-        """Get cached response if available."""
-        if not self.cache_dir:
+    def _read_cache(self, cache_path: Path) -> dict | None:
+        """Read and parse JSON cached data."""
+        try:
+            with open(cache_path) as f:
+                return json.load(f)
+        except (json.JSONDecodeError, IOError):
             return None
 
-        cache_file = self.cache_dir / f"s2_{self._cache_key(query)}.json"
-        if cache_file.exists():
-            try:
-                with open(cache_file) as f:
-                    data = json.load(f)
-                logger.debug(f"Cache hit for query: {query[:50]}...")
-                return data
-            except (json.JSONDecodeError, IOError):
-                pass
-        return None
-
-    def _set_cached(self, query: str, data: dict):
-        """Cache response data."""
-        if not self.cache_dir:
-            return
-
-        cache_file = self.cache_dir / f"s2_{self._cache_key(query)}.json"
-        try:
-            with open(cache_file, "w") as f:
-                json.dump(data, f)
-        except IOError as e:
-            logger.warning(f"Failed to cache response: {e}")
+    def _write_cache(self, cache_path: Path, data: dict) -> None:
+        """Write JSON data to cache file."""
+        with open(cache_path, "w") as f:
+            json.dump(data, f)
 
     def _build_queries(self, topic: TopicConfig) -> list[str]:
         """Build search queries from topic configuration."""

@@ -47,7 +47,9 @@ def is_oa_url(url: str) -> bool:
 
         return False
 
-    except Exception:
+    except (ValueError, AttributeError):
+        # ValueError from urlparse on malformed URLs
+        # AttributeError if netloc is None
         return False
 
 

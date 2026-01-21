@@ -1,8 +1,16 @@
 """Base classes and types for paper search."""
 
+import hashlib
+import logging
+import time
+from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Protocol
 import re
+
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -112,5 +120,80 @@ class SearchAdapter(Protocol):
     """Protocol for search adapters."""
 
     def search(self, topic: TopicConfig, max_results: int = 50) -> list[Paper]:
+        """Search for papers matching the topic configuration."""
+        ...
+
+
+class CachedSearchAdapter(ABC):
+    """Base class for search adapters with caching and rate limiting.
+
+    Provides common functionality:
+    - Rate limiting between requests
+    - Response caching with configurable file extension
+    """
+
+    # Subclasses should set these
+    RATE_LIMIT_DELAY: float = 3.0  # seconds between requests
+    CACHE_PREFIX: str = "cache"  # prefix for cache files
+    CACHE_EXTENSION: str = ".json"  # file extension for cache
+
+    def __init__(self, cache_dir: Path | None = None):
+        self.cache_dir = cache_dir
+        self._last_request_time = 0.0
+
+        if cache_dir:
+            cache_dir.mkdir(parents=True, exist_ok=True)
+
+    def _rate_limit(self) -> None:
+        """Ensure we don't exceed rate limits."""
+        elapsed = time.time() - self._last_request_time
+        if elapsed < self.RATE_LIMIT_DELAY:
+            time.sleep(self.RATE_LIMIT_DELAY - elapsed)
+        self._last_request_time = time.time()
+
+    def _cache_key(self, query: str) -> str:
+        """Generate cache key for a query."""
+        return hashlib.sha256(query.encode()).hexdigest()[:16]
+
+    def _cache_path(self, query: str) -> Path | None:
+        """Get cache file path for a query."""
+        if not self.cache_dir:
+            return None
+        return self.cache_dir / f"{self.CACHE_PREFIX}_{self._cache_key(query)}{self.CACHE_EXTENSION}"
+
+    @abstractmethod
+    def _read_cache(self, cache_path: Path) -> str | dict | None:
+        """Read and parse cached data. Returns None if cache miss or error."""
+        ...
+
+    @abstractmethod
+    def _write_cache(self, cache_path: Path, data: str | dict) -> None:
+        """Write data to cache file."""
+        ...
+
+    def _get_cached(self, query: str) -> str | dict | None:
+        """Get cached response if available."""
+        cache_path = self._cache_path(query)
+        if cache_path is None or not cache_path.exists():
+            return None
+
+        result = self._read_cache(cache_path)
+        if result is not None:
+            logger.debug(f"Cache hit for query: {query[:50]}...")
+        return result
+
+    def _set_cached(self, query: str, data: str | dict) -> None:
+        """Cache response data."""
+        cache_path = self._cache_path(query)
+        if cache_path is None:
+            return
+
+        try:
+            self._write_cache(cache_path, data)
+        except IOError as e:
+            logger.warning(f"Failed to cache response: {e}")
+
+    @abstractmethod
+    def search(self, topic: TopicConfig, max_results: int = 100) -> list[Paper]:
         """Search for papers matching the topic configuration."""
         ...
