@@ -1,0 +1,37 @@
+---
+layout: default
+---
+
+<article class="digest">
+  <header class="digest-header">
+    <h1>{{ page.title }}</h1>
+    <time datetime="{{ page.date }}">{{ page.date }}</time>
+  </header>
+
+  <div class="digest-stats">
+    <div class="stat-box">
+      <span class="stat-value">{{ page.num_selected }}</span>
+      <span class="stat-label">Selected</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-value">{{ page.num_downloaded }}</span>
+      <span class="stat-label">Downloaded</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-value">{{ page.num_abstracts }}</span>
+      <span class="stat-label">Abstracts</span>
+    </div>
+    <div class="stat-box">
+      <span class="stat-value">{{ page.num_candidates }}</span>
+      <span class="stat-label">Candidates</span>
+    </div>
+  </div>
+
+  <div class="digest-content">
+    {{ content }}
+  </div>
+
+  <nav class="digest-nav">
+    <a href="{{ '/' | relative_url }}">&larr; Back to all digests</a>
+  </nav>
+</article>

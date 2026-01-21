@@ -1,0 +1,21 @@
+<div class="paper-card">
+  <h3 class="paper-title">{{ include.title }}</h3>
+  {% if include.authors %}
+  <p class="paper-authors">{{ include.authors }}</p>
+  {% endif %}
+  {% if include.links %}
+  <p class="paper-links">{{ include.links }}</p>
+  {% endif %}
+  {% if include.abstract %}
+  <details class="paper-abstract">
+    <summary>Abstract</summary>
+    <p>{{ include.abstract }}</p>
+  </details>
+  {% endif %}
+  {% if include.conclusion %}
+  <details class="paper-conclusion">
+    <summary>Conclusion</summary>
+    <p>{{ include.conclusion }}</p>
+  </details>
+  {% endif %}
+</div>
