@@ -1,0 +1,32 @@
+topics:
+  covshift_imitation_learning:
+    name: "Covariate shift in imitation learning"
+    query:
+      must:
+        - "imitation learning"
+      should:
+        - "covariate shift"
+        - "distribution shift"
+        - "dataset shift"
+        - "compounding errors"
+        - "DAgger"
+        - "behavioral cloning"
+        - "offline imitation"
+        - "off-policy"
+      exclude:
+        - "domain adaptation"
+        - "covariance"
+    recency_years: 12
+    papers_per_day: 10
+    require_pdf: false
+    extract_conclusion: true
+    venue_boost:
+      - "NeurIPS"
+      - "ICLR"
+      - "ICML"
+      - "CoRL"
+      - "AISTATS"
+      - "AAAI"
+      - "IJCAI"
+      - "RSS"
+      - "ICRA"

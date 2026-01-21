@@ -1,0 +1,17 @@
+# Python-generated files
+__pycache__/
+*.py[oc]
+build/
+dist/
+wheels/
+*.egg-info
+
+# Virtual environments
+.venv
+
+# Data and cache (large files)
+data/cache/
+data/library.sqlite
+
+# Run outputs (optional: remove if you want to track digests)
+runs/*/papers/

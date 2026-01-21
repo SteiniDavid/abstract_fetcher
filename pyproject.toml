@@ -1,0 +1,13 @@
+[project]
+name = "paper-digest"
+version = "0.1.0"
+description = "Daily paper digest pipeline for scholarly paper discovery"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "click>=8.3.1",
+    "pymupdf>=1.26.7",
+    "pyyaml>=6.0.3",
+    "rapidfuzz>=3.14.3",
+    "requests>=2.32.5",
+]
