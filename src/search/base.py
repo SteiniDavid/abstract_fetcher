@@ -56,6 +56,26 @@ class Paper:
 
         return f"{safe}_{self.year}_{short_id}"
 
+    def to_dict(self, include_abstract: bool = False) -> dict:
+        """Serialize paper to dictionary for JSON export."""
+        data = {
+            "title": self.title,
+            "authors": self.authors,
+            "year": self.year,
+            "venue": self.venue,
+            "doi": self.doi,
+            "arxiv_id": self.arxiv_id,
+            "url": self.url,
+            "pdf_url": self.pdf_url,
+            "citation_count": self.citation_count,
+            "source": self.source,
+            "score": round(self.score, 2),
+            "selected_reason": self.selected_reason,
+        }
+        if include_abstract:
+            data["abstract"] = self.abstract
+        return data
+
 
 @dataclass
 class TopicConfig:

@@ -2,10 +2,10 @@
   "topic_key": "covshift_imitation_learning",
   "topic_name": "Covariate shift in imitation learning",
   "run_date": "2026-01-21",
-  "num_candidates": 100,
-  "num_unique": 100,
-  "num_novel": 100,
+  "num_candidates": 200,
+  "num_unique": 171,
+  "num_novel": 141,
   "num_selected": 10,
-  "num_downloaded": 10,
+  "num_downloaded": 9,
   "num_abstracts": 10
 }

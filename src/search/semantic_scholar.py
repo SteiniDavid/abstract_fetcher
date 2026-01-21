@@ -150,11 +150,15 @@ class SemanticScholarAdapter:
             # Extract authors
             authors = [a.get("name", "Unknown") for a in item.get("authors", []) or []]
 
-            # Extract PDF URL
+            # Extract PDF URL - prefer S2's openAccessPdf, fallback to arXiv
             pdf_url = None
             oa_pdf = item.get("openAccessPdf")
             if oa_pdf and isinstance(oa_pdf, dict):
                 pdf_url = oa_pdf.get("url")
+
+            # Fallback: construct arXiv PDF URL if we have an arXiv ID
+            if not pdf_url and arxiv_id:
+                pdf_url = f"https://arxiv.org/pdf/{arxiv_id}.pdf"
 
             # Build URL (prefer S2 URL)
             url = item.get("url", "")

@@ -22,9 +22,15 @@ CONCLUSION_PATTERNS = [
     r"^conclusions?\s*$",
     r"^conclusions?\s*[:\.]",
     r"^\d+\.?\s*conclusions?",
+    r"^[ivx]+\.?\s*conclusions?",  # Roman numerals
     r"^concluding\s+remarks",
     r"^summary\s+and\s+conclusions?",
     r"^discussion\s+and\s+conclusions?",
+    r"^conclusions?\s+and\s+future\s+work",
+    r"^conclusions?\s+and\s+limitations",
+    r"^final\s+remarks",
+    r"^closing\s+remarks",
+    r"^summary",
 ]
 
 # Patterns that indicate end of section

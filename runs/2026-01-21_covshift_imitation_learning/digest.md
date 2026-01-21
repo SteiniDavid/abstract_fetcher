@@ -3,203 +3,227 @@
 ## Summary
 
 - **Papers selected:** 10
-- **PDFs downloaded:** 10 (skipped: 0, failed: 0)
+- **PDFs downloaded:** 9 (skipped: 1, failed: 0)
 - **Abstracts available:** 10
-- **Conclusions extracted:** 4
+- **Conclusions extracted:** 5
 
-## 1) Robust Offline Imitation Learning from Diverse Auxiliary Data (2024) — arXiv:cs.LG
+## 1) Efficient Imitation Learning with Conservative World Models (2024) — Conference on Learning for Dynamics & Control
 
-**Authors:** Udita Ghosh, Dripta S. Raychaudhuri, Jiachen Li, Konstantinos Karydis, Amit K. Roy-Chowdhury
+**Authors:** Victor Kolev, Rafael Rafailov, K. Hatch, Jiajun Wu, Chelsea Finn
 
-**Links:** [Paper](https://arxiv.org/abs/2410.03626) | [arXiv](https://arxiv.org/abs/2410.03626)
+**Links:** [Paper](https://www.semanticscholar.org/paper/6534cd07cf88680dd38747597bb6990b6fa64eb0) | [DOI](https://doi.org/10.48550/arXiv.2405.13193) | [arXiv](https://arxiv.org/abs/2405.13193)
 
-**Why selected:** matches: imitation learning, distribution shift, behavioral cloning
+**Why selected:** matches: imitation learning, distribution shift, compounding errors
 
-**PDF:** `papers/Robust_Offline_Imitation_Learning_from_Diverse_Aux_2024_2410_03626.pdf`
+**PDF:** `papers/Efficient_Imitation_Learning_with_Conservative_Wor_2024_2405_13193.pdf`
 
 ### Abstract
 
-Offline imitation learning enables learning a policy solely from a set of expert demonstrations, without any environment interaction. To alleviate the issue of distribution shift arising due to the small amount of expert data, recent works incorporate large numbers of auxiliary demonstrations alongside the expert data. However, the performance of these approaches rely on assumptions about the quality and composition of the auxiliary data, and they are rarely successful when those assumptions do not hold. To address this limitation, we propose Robust Offline Imitation from Diverse Auxiliary Data (ROIDA). ROIDA first identifies high-quality transitions from the entire auxiliary dataset using a learned reward function. These high-reward samples are combined with the expert demonstrations for weighted behavioral cloning. For lower-quality samples, ROIDA applies temporal difference learning to steer the policy towards high-reward states, improving long-term returns. This two-pronged approach enables our framework to effectively leverage both high and low-quality data without any assumptions. Extensive experiments validate that ROIDA achieves robust and consistent performance across multiple auxiliary datasets with diverse ratios of expert and non-expert demonstrations. ROIDA effectively leverages unlabeled auxiliary data, outperforming prior methods reliant on specific data assumptions. Our code is available at https://github.com/uditaghosh/roida.
+We tackle the problem of policy learning from expert demonstrations without a reward function. A central challenge in this space is that these policies fail upon deployment due to issues of distributional shift, environment stochasticity, or compounding errors. Adversarial imitation learning alleviates this issue but requires additional on-policy training samples for stability, which presents a challenge in realistic domains due to inefficient learning and high sample complexity. One approach to this issue is to learn a world model of the environment, and use synthetic data for policy training. While successful in prior works, we argue that this is sub-optimal due to additional distribution shifts between the learned model and the real environment. Instead, we re-frame imitation learning as a fine-tuning problem, rather than a pure reinforcement learning one. Drawing theoretical connections to offline RL and fine-tuning algorithms, we argue that standard online world model algorithms are not well suited to the imitation learning problem. We derive a principled conservative optimization bound and demonstrate empirically that it leads to improved performance on two very challenging manipulation environments from high-dimensional raw pixel observations. We set a new state-of-the-art performance on the Franka Kitchen environment from images, requiring only 10 demos on no reward labels, as well as solving a complex dexterity manipulation task.
 
 *(Source: metadata)*
 
-### Conclusion (extracted)
+### Conclusion
 
-We propose ROIDA, a simple yet effective framework for offline imitation that can maximize utilization of an unlabeled auxiliary dataset of unknown quality alongside a small set of expert demonstrations. Unlike previous methods that make assumptions about auxiliary dataset quality, ROIDA can seamlessly leverage uncurated, unlabeled offline datasets without relying on any quality assumptions. We demonstrate ROIDA’s efficacy on multiple manipulation and locomotion tasks, encompassing a wide variety of auxiliary dataset quality settings. The consistent performance gains over baselines validate ROIDA’s ability to unlock the full potential of heterogeneous offline datasets without relying on quality assumptions. Limitations While ROIDA demonstrates strong performance across various environments, we believe there is still room for improvement in the reward estimation process. To investigate this, we conduct an experiment shown in Table 5, where we substitute the estimated reward with the ground-truth reward from the D4RL benchmark. The results indicate a performance gap between the estimated and ground-truth rewards. This finding suggests that our method could potentially achieve higher performance if the reward estimation process is further refined and improved. Table 5: Performance on the Hopper task with ground-truth rewards. Setting Method ROIDA ROIDA w/ GT rewards 5 / 0 84.63± 16.01 94.63± 20.76 5 / 3 86.66± 21.94 98.53± 11.70 5 / 5 88.45± 8.46 104.46± 5.42 Avg. 86.58± 16.42 99.21± 14.11 In our particular framework, the reward estimation can be improved by an accurate choice of the hyperparameter η by performing mixture proportion estimation (Zhu et al., 2023; Ramaswamy et al., 2016). However, this is beyond the scope of our work. In order to avoid any assumption about the auxiliary data in our work, we have chosen η = 0.5 which is an unbiased estimate. We also provide additional results with η = 0.3 and η = 0.7 in Table 6. Here, we obtain better results when η is closer (η = 0.3 is closer than η = 0.7) to the true ratio between expert and suboptimal demonstration in the auxiliary dataset (0.01 for setting 5/0, 0.12 for setting 5/3 and 0.19 for setting 5/5). Since this true ratio is unknown, estimating it would be a problem in its own right, which could then be combined with our method. Additionally, the current implementation of ROIDA is designed for a single-task setting. An interesting avenue for future work is to extend our framework to multi-task or goal-conditioned settings, where the model is trained on datasets from different tasks or goals. In such a scenario, ROIDA could be used to learn a new, 12 Published in Transactions on Machine Learning Research (04/2025) Table 6: Performance on the Hopper task with varying η. Setting Method η = 0.3 η = 0.5 η = 0.7 5 / 0 88.12± 14.93 84.63± 16.01 82.40± 20.76 5 / 3 90.42± 18.84 86.66± 21.94 84.85± 7.13 5 / 5 91.02± 7.97 88.45± 8.46 86.45± 18.61 Avg. 89.85± 14.62 86.58± 16.42 84.57± 14.39 unseen, bu
+In this work we argue that policy optimization algorithms designed for online RL are not well suited to the IRL/AIL setting as they carry out excessive exploration and induce additional distributional shifts. We focus on the model-based case, and argue that conservative models used for offline RL are better suited to the AIL setting. We pose imitation learning as a fine-tuning problem, rather than a purely RL one, and we draw theoretical connections to offline RL and conservative fine-tuning algorithms. We provide a conservative optimization bound, as well as a practical algorithm and evaluate it on challenging manipulation tasks. The proposed algorithm achieves faster and more stable performance as compared to previous imitation learning approaches. In future work we plan to evaluate our method on further domains. Acknowledgments Chelsea Finn is a CIFAR Fellow in the Learning in Machines and Brains program. This work was also supported by ONR grant N00014-22-1-2621 and the Volkswagen Group.
 
 ---
 
-## 2) MEGA-DAgger: Imitation Learning with Multiple Imperfect Experts (2023) — arXiv:cs.LG
+## 2) Adaptive Absolute-Relative Rating for Noise Rejection in Behavioral Cloning based on Tsallis Statistics (2025) — IEEE/SICE International Symposium on System Integration
 
-**Authors:** Xiatao Sun, Shuo Yang, Mingyan Zhou, Kunpeng Liu, Rahul Mangharam
+**Authors:** Taisuke Kobayashi, T. Aoyama
 
-**Links:** [Paper](https://arxiv.org/abs/2303.00638) | [arXiv](https://arxiv.org/abs/2303.00638)
+**Links:** [Paper](https://www.semanticscholar.org/paper/ab5044cb120018b9d6f47c4532c1c199a3b35868) | [DOI](https://doi.org/10.1109/SII59315.2025.10871068)
 
-**Why selected:** matches: imitation learning, covariate shift, compounding errors
+**Why selected:** matches: imitation learning, behavioral cloning, offline imitation; recent publication
 
-**PDF:** `papers/MEGA-DAgger_Imitation_Learning_with_Multiple_Imper_2023_2303_00638.pdf`
+**PDF:** Not available (OA only)
 
 ### Abstract
 
-Imitation learning has been widely applied to various autonomous systems thanks to recent development in interactive algorithms that address covariate shift and compounding errors induced by traditional approaches like behavior cloning. However, existing interactive imitation learning methods assume access to one perfect expert. Whereas in reality, it is more likely to have multiple imperfect experts instead. In this paper, we propose MEGA-DAgger, a new DAgger variant that is suitable for interactive learning with multiple imperfect experts. First, unsafe demonstrations are filtered while aggregating the training data, so the imperfect demonstrations have little influence when training the novice policy. Next, experts are evaluated and compared on scenarios-specific metrics to resolve the conflicted labels among experts. Through experiments in autonomous racing scenarios, we demonstrate that policy learned using MEGA-DAgger can outperform both experts and policies learned using the state-of-the-art interactive imitation learning algorithms such as Human-Gated DAgger. The supplementary video can be found at \url{https://youtu.be/wPCht31MHrw}.
+In robot control from demonstrations, a sufficient dataset cannot be collected for many of the tasks that require experts with qualifications to special skills. Unfortunately, insufficient expert dataset would manifest various types of noise hidden in it. Since adding data is difficult as well, offline imitation learning needs to be robust to such a noise. In the conventional work, a behavioral cloning method based on Tsallis statistics has been developed. However, it weights each data with absolute rating with a fixed threshold, which would fail to imitate coarse/diverse motions. Therefore, this paper improves the conventional method by adding the function of relative rating for each data, which should enable robots to imitate non-noisy data even from coarse/diverse motions. This function can be obtained from a different derivation way of the optimization problem with Tsallis statistics. By integrating it with the conventional derivation way, the proposed method can adjust between the absolute and relative ratings. Finally, for more convenience, we design optimization tricks for the hyperparameters to maximize the variance of weights with avoiding extremely large weights. In numerical simulations and real-robot experiments, we demonstrate the robustness of the proposed method.
 
 *(Source: metadata)*
+
+### Conclusion
+
+*Conclusion not available (PDF not downloaded)*
 
 ---
 
-## 3) Model-based Offline Imitation Learning with Non-expert Data (2022) — arXiv:cs.LG
+## 3) Bridging Multicalibration and Out-of-distribution Generalization Beyond Covariate Shift (2024) — Neural Information Processing Systems
 
-**Authors:** Jeongwon Park, Lin Yang
+**Authors:** Jiayun Wu, Jiashuo Liu, Peng Cui, Zhiwei Steven Wu
 
-**Links:** [Paper](https://arxiv.org/abs/2206.05521) | [arXiv](https://arxiv.org/abs/2206.05521)
+**Links:** [Paper](https://www.semanticscholar.org/paper/03dd209a79b302cd7bc976c0bbe6761c152c05b3) | [DOI](https://doi.org/10.48550/arXiv.2406.00661) | [arXiv](https://arxiv.org/abs/2406.00661)
 
-**Why selected:** matches: imitation learning, compounding errors, behavioral cloning
+**Why selected:** matches: covariate shift, distribution shift; 11 citations
 
-**PDF:** `papers/Model-based_Offline_Imitation_Learning_with_Non-ex_2022_2206_05521.pdf`
+**PDF:** `papers/Bridging_Multicalibration_and_Out-of-distribution_2024_2406_00661.pdf`
 
 ### Abstract
 
-Although Behavioral Cloning (BC) in theory suffers compounding errors, its scalability and simplicity still makes it an attractive imitation learning algorithm. In contrast, imitation approaches with adversarial training typically does not share the same problem, but necessitates interactions with the environment. Meanwhile, most imitation learning methods only utilises optimal datasets, which could be significantly more expensive to obtain than its suboptimal counterpart. A question that arises is, can we utilise the suboptimal dataset in a principled manner, which otherwise would have been idle? We propose a scalable model-based offline imitation learning algorithmic framework that leverages datasets collected by both suboptimal and optimal policies, and show that its worst case suboptimality becomes linear in the time horizon with respect to the expert samples. We empirically validate our theoretical results and show that the proposed method \textit{always} outperforms BC in the low data regime on simulated continuous control domains
+We establish a new model-agnostic optimization framework for out-of-distribution generalization via multicalibration, a criterion that ensures a predictor is calibrated across a family of overlapping groups. Multicalibration is shown to be associated with robustness of statistical inference under covariate shift. We further establish a link between multicalibration and robustness for prediction tasks both under and beyond covariate shift. We accomplish this by extending multicalibration to incorporate grouping functions that consider covariates and labels jointly. This leads to an equivalence of the extended multicalibration and invariance, an objective for robust learning in existence of concept shift. We show a linear structure of the grouping function class spanned by density ratios, resulting in a unifying framework for robust learning by designing specific grouping functions. We propose MC-Pseudolabel, a post-processing algorithm to achieve both extended multicalibration and out-of-distribution generalization. The algorithm, with lightweight hyperparameters and optimization through a series of supervised regression steps, achieves superior performance on real-world datasets with distribution shift.
 
 *(Source: metadata)*
 
-### Conclusion (extracted)
+### Conclusion
 
-Addressing sample efﬁciency and covariate shift has been a long standing challenge in IL. In our work, we present principled remedies by ﬁnding usage of suboptimal demonstrations. We show that training a model from a suboptimal dataset and adversarial training in the estimated MDP yields an algorithm that requires much lower amount of expert samples. As the algorithms we present are general and backed with theory, it could potentially have real world use cases. It shares the same promise with ofﬂine RL, but without requiring reward labels. It is also worthy to share some limitations in our work. Notably, our algorithm relies on the sufﬁcient coverage assumption of the behavior dataset along with less principled approaches to estimate uncertainty. In that perspective, our work shares the same obstacles as model based ofﬂine RL algorithms, and future works on these limitations could beneﬁt them both.
+To conclude, we establish a new optimization framework for out-of-distribution generalization through extended multicalibration with joint grouping functions. While the current algorithm focuses on regression, there is potential for future work to extend our approach to general forms of tasks, particularly in terms of classification. 10
 
 ---
 
-## 4) LUMOS: Language-Conditioned Imitation Learning with World Models (2025) — arXiv:cs.RO
+## 4) Automatic Dataset Shift Identification to Support Safe Deployment of Medical Imaging AI (2024) — International Conference on Medical Image Computing and Computer-Assisted Intervention
 
-**Authors:** Iman Nematollahi, Branton DeMoss, Akshay L Chandra, Nick Hawes, Wolfram Burgard et al. (6 authors)
+**Authors:** Mélanie Roschewitz, Raghav Mehta, Charles Jones, Ben Glocker
 
-**Links:** [Paper](https://arxiv.org/abs/2503.10370) | [arXiv](https://arxiv.org/abs/2503.10370)
+**Links:** [Paper](https://www.semanticscholar.org/paper/6a683e8d8364ee57917e6ab1172562f7864f05fb) | [DOI](https://doi.org/10.1007/978-3-032-04981-0_7) | [arXiv](https://arxiv.org/abs/2411.07940)
 
-**Why selected:** matches: imitation learning, covariate shift, distribution shift; recent publication
+**Why selected:** matches: covariate shift, dataset shift
 
-**PDF:** `papers/LUMOS_Language-Conditioned_Imitation_Learning_with_2025_2503_10370.pdf`
+**PDF:** `papers/Automatic_Dataset_Shift_Identification_to_Support_2024_2411_07940.pdf`
 
 ### Abstract
 
-We introduce LUMOS, a language-conditioned multi-task imitation learning framework for robotics. LUMOS learns skills by practicing them over many long-horizon rollouts in the latent space of a learned world model and transfers these skills zero-shot to a real robot. By learning on-policy in the latent space of the learned world model, our algorithm mitigates policy-induced distribution shift which most offline imitation learning methods suffer from. LUMOS learns from unstructured play data with fewer than 1% hindsight language annotations but is steerable with language commands at test time. We achieve this coherent long-horizon performance by combining latent planning with both image- and language-based hindsight goal relabeling during training, and by optimizing an intrinsic reward defined in the latent space of the world model over multiple time steps, effectively reducing covariate shift. In experiments on the difficult long-horizon CALVIN benchmark, LUMOS outperforms prior learning-based methods with comparable approaches on chained multi-task evaluations. To the best of our knowledge, we are the first to learn a language-conditioned continuous visuomotor control for a real-world robot within an offline world model. Videos, dataset and code are available at http://lumos.cs.uni-freiburg.de.
+Shifts in data distribution can substantially harm the performance of clinical AI models and lead to misdiagnosis. Hence, various methods have been developed to detect the presence of such shifts at deployment time. However, the root causes of dataset shifts are diverse, and the choice of shift mitigation strategies is highly dependent on the precise type of shift encountered at test time. As such, detecting test-time dataset shift is not sufficient: precisely identifying which type of shift has occurred is critical. In this work, we propose the first unsupervised dataset shift identification framework for imaging datasets, effectively distinguishing between prevalence shift (caused by a change in the label distribution), covariate shift (caused by a change in input characteristics) and mixed shifts (simultaneous prevalence and covariate shifts). We discuss the importance of self-supervised encoders for detecting subtle covariate shifts and propose a novel shift detector leveraging both self-supervised encoders and task model outputs for improved shift detection. We show the effectiveness of the proposed shift identification framework across three different imaging modalities (chest radiography, digital mammography, and retinal fundus images) on five types of real-world dataset shifts using five large publicly available datasets.
 
 *(Source: metadata)*
+
+### Conclusion
+
+*Conclusion not found in PDF*
 
 ---
 
-## 5) Imitation Learning for Multi-turn LM Agents via On-policy Expert Corrections (2025) — arXiv:cs.LG
+## 5) Robust Behavioral Cloning for Autonomous Vehicles using End-to-End Imitation Learning (2020) — SAE International Journal of Connected and Automated Vehicles
 
-**Authors:** Niklas Lauffer, Xiang Deng, Srivatsa Kundurthy, Brad Kenstler, Jeff Da
+**Authors:** Tanmay Vilas Samak, Chinmay Vilas Samak, S. Kandhasamy
 
-**Links:** [Paper](https://arxiv.org/abs/2512.14895) | [arXiv](https://arxiv.org/abs/2512.14895)
+**Links:** [Paper](https://www.semanticscholar.org/paper/62b38624ce1029b602e8d3212ec7111503d527d3) | [DOI](https://doi.org/10.4271/12-04-03-0023) | [arXiv](https://arxiv.org/abs/2010.04767)
 
-**Why selected:** matches: imitation learning, covariate shift, DAgger; recent publication
+**Why selected:** matches: imitation learning, behavioral cloning; 40 citations
 
-**PDF:** `papers/Imitation_Learning_for_Multi-turn_LM_Agents_via_On_2025_2512_14895.pdf`
+**PDF:** `papers/Robust_Behavioral_Cloning_for_Autonomous_Vehicles_2020_2010_04767.pdf`
 
 ### Abstract
 
-A popular paradigm for training LM agents relies on imitation learning, fine-tuning on expert trajectories. However, we show that the off-policy nature of imitation learning for multi-turn LM agents suffers from the fundamental limitation known as covariate shift: as the student policy's behavior diverges from the expert's, it encounters states not present in the training data, reducing the effectiveness of fine-tuning. Taking inspiration from the classic DAgger algorithm, we propose a novel data generation methodology for addressing covariate shift for multi-turn LLM training. We introduce on-policy expert corrections (OECs), partially on-policy data generated by starting rollouts with a student model and then switching to an expert model part way through the trajectory. We explore the effectiveness of our data generation technique in the domain of software engineering (SWE) tasks, a multi-turn setting where LLM agents must interact with a development environment to fix software bugs. Our experiments compare OEC data against various other on-policy and imitation learning approaches on SWE agent problems and train models using a common rejection sampling (i.e., using environment reward) combined with supervised fine-tuning technique. Experiments find that OEC trajectories show a relative 14% and 13% improvement over traditional imitation learning in the 7b and 32b setting, respectively, on SWE-bench verified. Our results demonstrate the need for combining expert demonstrations with on-policy data for effective multi-turn LM agent training.
+In this work, we present a robust pipeline for cloning driving behavior of a human using end-to-end imitation learning. The proposed pipeline was employed to train and deploy three distinct driving behavior models onto a simulated vehicle. The training phase comprised of data collection, balancing, augmentation, preprocessing and training a neural network, following which, the trained model was deployed onto the ego vehicle to predict steering commands based on the feed from an onboard camera. A novel coupled control law was formulated to generate longitudinal control commands on-the-go based on the predicted steering angle and other parameters such as actual speed of the ego vehicle and the prescribed constraints for speed and steering. We analyzed computational efficiency of the pipeline and evaluated robustness of the trained models through exhaustive experimentation. Even a relatively shallow convolutional neural network model was able to learn key driving behaviors from sparsely labelled datasets and was tolerant to environmental variations during deployment of the said driving behaviors.
 
 *(Source: metadata)*
 
-### Conclusion (extracted)
+### Conclusion
 
-We introduce a novel, partially on-policy data generation technique, called on-policy expert corrections (OECs) to address the problem of covariate shift in imitation learning for multi-turn LM agents. Our technique combines the strengths of several existing paradigms for LM agent training: the relevance of on-policy training from RL, expert data from imitation learning methods, and rejection sampling from training with verifiable rewards. Our experiments highlight the limitations of relying on either purely on-policy training or purely expert demonstrations. Moreover, our experiments highlight the importance of evaluating data quality beyond verifiable rewards, showing that a small proportion of low-quality, positive trajectories can greatly destabilize learning. Our experiments focus on the SWE agent setting, but it will be important for future work to test our findings in other multi-turn LM agent domains, especially as LM agents are used for more complex and long-horizon tasks (Kwa et al., 2025) and the problem of covariate shift becomes increasingly severe. 9 Limitations. Although they have their clear benefits, OECs are not known to benefit from the same no-regret learning guarantees as traditional DAgger. Also, as fine-tuning is performed on a set of OEC trajectories, the on-policy portions of the trajectories become increasingly off-policy, potentially limiting their benefit. This could be mitigated by doing multiple intermediate rounds of OEC generation or by generating new OEC trajectories in an online fashion. Like other imitation learning approaches, OEC trajectories require a source of the expert trajectories (unlike other approaches such RL). In this work, we explored the setting in which a stronger model provides the expert trajectories, whoever, our ideas could be extended to human expert data, using increased test-time compute (e.g., best-of-N Brown et al. (2020) or tree-of-thought Yao et al. (2023)), or privileged information (e.g., hints Nath et al. (2025)) to generate OEC trajectories. 6 REPRODUCIBILITY STATEMENT The source code (built on top of a fork of SWE-agent Yang et al. (2024a)) for generating OEC trajectories, computing the covariate shift between trajectories, and performing the LLM-as-judge qualitative analysis are attached as supplementary material and will be released as a public Github repository for publication. Upon publication, we will also open-source our models OEC-SWE-32B and OEC-SWE-7B and the OEC trajectories collected for our experiments. The problem instances we generated trajectories on come from SWE-smith Yang et al. (2025) and a description of how the distribution is gathered is given in Section 4.1. Section 3 as well as Algorithm 1 included details on how OEC trajectory generation is performed and how our models are trained. Appendix C includes all relevant hyperparameters used for supervised fine-tuning.
+This work presented a lightweight pipeline for training and deploying robust driving behavior models on autonomous vehicles using end-to-end imitation learning. The work also introduced a coupled control scheme so as to enhance the cooperative nature of lateral and longitudinal motion control commands. Additionally, a set of experiments and evaluation metrics for analyzing the efficiency and robustness of the proposed pipeline were formulated and presented as a part of this research. Three distinct driving behaviors were cloned using the proposed pipeline and exhaustive experimentation was carried out so as to test the bounds of the proposed system. Even a comparatively shallow neural network model was able to learn key driving behaviors from a sparsely labelled dataset and was tolerant to environmental variations during deployment of the said driving behaviors. Finally, the presented approach was validated by comparing it with NVIDIA’s state-of-the-art implementation. This work may be taken up to develop explicit hardware or sim2real implementations of end-to-end learning for autonomous driving. Additionally, the effect of collecting a diverse dataset from multiple human drivers and using substitute/multiple sensing modalities may be studied. Moreover, alternative approaches may be investigated to address the problem of generalization failure of end-to-end trained models in disparate scenarios. Furthermore, theoretical formulations for assessing reliability of autonomous systems trained using end-to-end learning may be researched exhaustively. Finally, this research may be pursued further in order to standardize the experiments and evaluation metrics for testing efficiency of an end-to-end learning pipeline and robustness of the trained models. 6. REFERENCES [1] Yurtsever E., Lambert J., Carballo A., and Takeda K., “A Survey of Autonomous Driving: Common Practices and Emerging Technologies,” IEEE Access, vol. 8, (2020): 58443-58469, doi: 10.1109/ACCESS.2020.2983149 [2] Rubio F., Valero F., and Llopis-Albert C., “A review of mobile robots: Concepts, methods, theoretical framework, and applications,” International Journal of Advanced Robotic Systems, vol. 16, no. 2, (2019): 1–22, doi: 10.1177/1729881419839596 [3] Alom M., Taha T., Yakopcic C., Westberg S., et. al., “The History Began from AlexNet: A Comprehensive Survey on Deep Learning Approaches,” (2018), arXiv:1803.01164 [4] Zhou F., Jin L., and Dong J., “Review of Convolutional Neural Network,” Jisuanji Xuebao/Chinese Journal of Computers 40, (2017): 1229-1251, doi: 10.11897/SP.J.1016.2017.01229 [5] Tampuu A., Semikin M., Muhammad N., Fishman D., and Matiisen, T., “A Survey of End-to-End Driving: Architectures and Training Methods,” (2020), arXiv:2003.06404 [6] K. Sivanathan, B. K. Vinayagam, T. Samak and C. Samak, "Decentralized Motion Planning for Multi-Robot Navigation using Deep Reinforcement Learning," 2020 3rd International Conference on Intelligent Sustainable Systems (ICISS), Thoothuku
 
 ---
 
-## 6) Simulation-Driven Railway Delay Prediction: An Imitation Learning Approach (2025) — arXiv:cs.LG
+## 6) Conformalized Interactive Imitation Learning: Handling Expert Shift and Intermittent Feedback (2024) — arXiv.org
 
-**Authors:** Clément Elliker, Jesse Read, Sonia Vanier, Albert Bifet
+**Authors:** Michelle D. Zhao, Reid G. Simmons, H. Admoni, Aaditya Ramdas, Andrea Bajcsy
 
-**Links:** [Paper](https://arxiv.org/abs/2512.19737) | [arXiv](https://arxiv.org/abs/2512.19737)
+**Links:** [Paper](https://www.semanticscholar.org/paper/e499fd0794ed7fe556a69b24300d3afec2b224eb) | [DOI](https://doi.org/10.48550/arXiv.2410.08852) | [arXiv](https://arxiv.org/abs/2410.08852)
 
-**Why selected:** matches: imitation learning, covariate shift, DAgger; recent publication
+**Why selected:** matches: imitation learning, distribution shift, DAgger
 
-**PDF:** `papers/Simulation-Driven_Railway_Delay_Prediction_An_Imit_2025_2512_19737.pdf`
+**PDF:** `papers/Conformalized_Interactive_Imitation_Learning_Handl_2024_2410_08852.pdf`
 
 ### Abstract
 
-Reliable prediction of train delays is essential for enhancing the robustness and efficiency of railway transportation systems. In this work, we reframe delay forecasting as a stochastic simulation task, modeling state-transition dynamics through imitation learning. We introduce Drift-Corrected Imitation Learning (DCIL), a novel self-supervised algorithm that extends DAgger by incorporating distance-based drift correction, thereby mitigating covariate shift during rollouts without requiring access to an external oracle or adversarial schemes. Our approach synthesizes the dynamical fidelity of event-driven models with the representational capacity of data-driven methods, enabling uncertainty-aware forecasting via Monte Carlo simulation. We evaluate DCIL using a comprehensive real-world dataset from \textsc{Infrabel}, the Belgian railway infrastructure manager, which encompasses over three million train movements. Our results, focused on predictions up to 30 minutes ahead, demonstrate superior predictive performance of DCIL over traditional regression models and behavioral cloning on deep learning architectures, highlighting its effectiveness in capturing the sequential and uncertain nature of delay propagation in large-scale networks.
+In interactive imitation learning (IL), uncertainty quantification offers a way for the learner (i.e. robot) to contend with distribution shifts encountered during deployment by actively seeking additional feedback from an expert (i.e. human) online. Prior works use mechanisms like ensemble disagreement or Monte Carlo dropout to quantify when black-box IL policies are uncertain; however, these approaches can lead to overconfident estimates when faced with deployment-time distribution shifts. Instead, we contend that we need uncertainty quantification algorithms that can leverage the expert human feedback received during deployment time to adapt the robot's uncertainty online. To tackle this, we draw upon online conformal prediction, a distribution-free method for constructing prediction intervals online given a stream of ground-truth labels. Human labels, however, are intermittent in the interactive IL setting. Thus, from the conformal prediction side, we introduce a novel uncertainty quantification algorithm called intermittent quantile tracking (IQT) that leverages a probabilistic model of intermittent labels, maintains asymptotic coverage guarantees, and empirically achieves desired coverage levels. From the interactive IL side, we develop ConformalDAgger, a new approach wherein the robot uses prediction intervals calibrated by IQT as a reliable measure of deployment-time uncertainty to actively query for more expert feedback. We compare ConformalDAgger to prior uncertainty-aware DAgger methods in scenarios where the distribution shift is (and isn't) present because of changes in the expert's policy. We find that in simulated and hardware deployments on a 7DOF robotic manipulator, ConformalDAgger detects high uncertainty when the expert shifts and increases the number of interventions compared to baselines, allowing the robot to more quickly learn the new behavior.
 
 *(Source: metadata)*
+
+### Conclusion
+
+We first extend uncertainty quantification via online conformal prediction to handle intermittent labels, such as those observed in interactive imitation learning. We then propose ConformalDAgger, a unification of our online conformal prediction algorithm with interactive imitation learning. Our approach provides asymptotic coverage guarantees for deployed end-to-end policies, uses the calibrated 10 Published as a conference paper at ICLR 2025 uncertainty measure to detect expert distribution shifts and actively query for more feedback, and empirically enables the robot learner update its policy to better align with the expert. ACKNOWLEDGMENTS The authors would like to thank Gokul Swamy for insightful conversations and the detailed review, Yilin Wu for help with diffusion policy and robot hardware setup. MZ is supported by an NDSEG fellowship.
 
 ---
 
-## 7) RLIF: Interactive Imitation Learning as Reinforcement Learning (2023) — arXiv:cs.AI
+## 7) Generative Adversarial Imitation Learning (2016) — Neural Information Processing Systems
 
-**Authors:** Jianlan Luo, Perry Dong, Yuexiang Zhai, Yi Ma, Sergey Levine
+**Authors:** Jonathan Ho, Stefano Ermon
 
-**Links:** [Paper](https://arxiv.org/abs/2311.12996) | [arXiv](https://arxiv.org/abs/2311.12996)
+**Links:** [Paper](https://www.semanticscholar.org/paper/4ab53de69372ec2cd2d90c126b6a100165dc8ed1) | [arXiv](https://arxiv.org/abs/1606.03476)
 
-**Why selected:** matches: imitation learning, DAgger, behavioral cloning
+**Why selected:** matches: imitation learning; 3467 citations
 
-**PDF:** `papers/RLIF_Interactive_Imitation_Learning_as_Reinforceme_2023_2311_12996.pdf`
+**PDF:** `papers/Generative_Adversarial_Imitation_Learning_2016_1606_03476.pdf`
 
 ### Abstract
 
-Although reinforcement learning methods offer a powerful framework for automatic skill acquisition, for practical learning-based control problems in domains such as robotics, imitation learning often provides a more convenient and accessible alternative. In particular, an interactive imitation learning method such as DAgger, which queries a near-optimal expert to intervene online to collect correction data for addressing the distributional shift challenges that afflict naïve behavioral cloning, can enjoy good performance both in theory and practice without requiring manually specified reward functions and other components of full reinforcement learning methods. In this paper, we explore how off-policy reinforcement learning can enable improved performance under assumptions that are similar but potentially even more practical than those of interactive imitation learning. Our proposed method uses reinforcement learning with user intervention signals themselves as rewards. This relaxes the assumption that intervening experts in interactive imitation learning should be near-optimal and enables the algorithm to learn behaviors that improve over the potential suboptimal human expert. We also provide a unified framework to analyze our RL method and DAgger; for which we present the asymptotic analysis of the suboptimal gap for both methods as well as the non-asymptotic sample complexity bound of our method. We then evaluate our method on challenging high-dimensional continuous control simulation benchmarks as well as real-world robotic vision-based manipulation tasks. The results show that it strongly outperforms DAgger-like approaches across the different tasks, especially when the intervening experts are suboptimal. Code and videos can be found on the project website: https://rlif-page.github.io
+Consider learning a policy from example expert behavior, without interaction with the expert or access to reinforcement signal. One approach is to recover the expert's cost function with inverse reinforcement learning, then extract a policy from that cost function with reinforcement learning. This approach is indirect and can be slow. We propose a new general framework for directly extracting a policy from data, as if it were obtained by reinforcement learning following inverse reinforcement learning. We show that a certain instantiation of our framework draws an analogy between imitation learning and generative adversarial networks, from which we derive a model-free imitation learning algorithm that obtains significant performance gains over existing model-free methods in imitating complex behaviors in large, high-dimensional environments.
 
 *(Source: metadata)*
+
+### Conclusion
+
+*Conclusion not found in PDF*
 
 ---
 
-## 8) Robust Offline Imitation Learning Through State-level Trajectory Stitching (2025) — arXiv:cs.RO
+## 8) Diffusion Meets DAgger: Supercharging Eye-in-hand Imitation Learning (2024) — Robotics: Science and Systems
 
-**Authors:** Shuze Wang, Yunpeng Mei, Hongjie Cao, Yetian Yuan, Gang Wang et al. (7 authors)
+**Authors:** Xiaoyu Zhang, Matthew Chang, Pranav Kumar, Saurabh Gupta
 
-**Links:** [Paper](https://arxiv.org/abs/2503.22524) | [arXiv](https://arxiv.org/abs/2503.22524)
+**Links:** [Paper](https://www.semanticscholar.org/paper/0f6d341ffc366c42c4d741668cfa104dea354174) | [DOI](https://doi.org/10.48550/arXiv.2402.17768) | [arXiv](https://arxiv.org/abs/2402.17768)
 
-**Why selected:** matches: imitation learning, covariate shift, offline imitation; recent publication
+**Why selected:** matches: imitation learning, DAgger; 28 citations
 
-**PDF:** `papers/Robust_Offline_Imitation_Learning_Through_State-le_2025_2503_22524.pdf`
+**PDF:** `papers/Diffusion_Meets_DAgger_Supercharging_Eye-in-hand_I_2024_2402_17768.pdf`
 
 ### Abstract
 
-Imitation learning (IL) has proven effective for enabling robots to acquire visuomotor skills through expert demonstrations. However, traditional IL methods are limited by their reliance on high-quality, often scarce, expert data, and suffer from covariate shift. To address these challenges, recent advances in offline IL have incorporated suboptimal, unlabeled datasets into the training. In this paper, we propose a novel approach to enhance policy learning from mixed-quality offline datasets by leveraging task-relevant trajectory fragments and rich environmental dynamics. Specifically, we introduce a state-based search framework that stitches state-action pairs from imperfect demonstrations, generating more diverse and informative training trajectories. Experimental results on standard IL benchmarks and real-world robotic tasks showcase that our proposed method significantly improves both generalization and performance.
+A common failure mode for policies trained with imitation is compounding execution errors at test time. When the learned policy encounters states that are not present in the expert demonstrations, the policy fails, leading to degenerate behavior. The Dataset Aggregation, or DAgger approach to this problem simply collects more data to cover these failure states. However, in practice, this is often prohibitively expensive. In this work, we propose Diffusion Meets DAgger (DMD), a method to reap the benefits of DAgger without the cost for eye-in-hand imitation learning problems. Instead of collecting new samples to cover out-of-distribution states, DMD uses recent advances in diffusion models to synthesize these samples. This leads to robust performance from few demonstrations. We compare DMD against behavior cloning baseline across four tasks: pushing, stacking, pouring, and shirt hanging. In pushing, DMD achieves 80% success rate with as few as 8 expert demonstrations, where naive behavior cloning reaches only 20%. In stacking, DMD succeeds on average 92% of the time across 5 cups, versus 40% for BC. When pouring coffee beans, DMD transfers to another cup successfully 80% of the time. Finally, DMD attains 90% success rate for hanging shirt on a clothing rack.
 
 *(Source: metadata)*
+
+### Conclusion
+
+*Conclusion not found in PDF*
 
 ---
 
-## 9) Offline Imitation Learning with Model-based Reverse Augmentation (2024) — arXiv:cs.LG
+## 9) Dynamic Rank Adjustment in Diffusion Policies for Efficient and Flexible Training (2025) — Robotics
 
-**Authors:** Jie-Jing Shao, Hao-Sen Shi, Lan-Zhe Guo, Yu-Feng Li
+**Authors:** Xiatao Sun, Shuo Yang, Yinxing Chen, Francis Fan, Yiyan Liang et al. (6 authors)
 
-**Links:** [Paper](https://arxiv.org/abs/2406.12550) | [arXiv](https://arxiv.org/abs/2406.12550)
+**Links:** [Paper](https://www.semanticscholar.org/paper/d69c0e196c45b88203b672eec115a278dff31248) | [DOI](https://doi.org/10.48550/arXiv.2502.03822) | [arXiv](https://arxiv.org/abs/2502.03822)
 
-**Why selected:** matches: imitation learning, covariate shift, offline imitation
+**Why selected:** matches: imitation learning, DAgger, behavioral cloning; recent publication
 
-**PDF:** `papers/Offline_Imitation_Learning_with_Model-based_Revers_2024_2406_12550.pdf`
+**PDF:** `papers/Dynamic_Rank_Adjustment_in_Diffusion_Policies_for_2025_2502_03822.pdf`
 
 ### Abstract
 
-In offline Imitation Learning (IL), one of the main challenges is the \textit{covariate shift} between the expert observations and the actual distribution encountered by the agent, because it is difficult to determine what action an agent should take when outside the state distribution of the expert demonstrations. Recently, the model-free solutions introduce the supplementary data and identify the latent expert-similar samples to augment the reliable samples during learning. Model-based solutions build forward dynamic models with conservatism quantification and then generate additional trajectories in the neighborhood of expert demonstrations. However, without reward supervision, these methods are often over-conservative in the out-of-expert-support regions, because only in states close to expert-observed states can there be a preferred action enabling policy optimization. To encourage more exploration on expert-unobserved states, we propose a novel model-based framework, called offline Imitation Learning with Self-paced Reverse Augmentation (SRA). Specifically, we build a reverse dynamic model from the offline demonstrations, which can efficiently generate trajectories leading to the expert-observed states in a self-paced style. Then, we use the subsequent reinforcement learning method to learn from the augmented trajectories and transit from expert-unobserved states to expert-observed states. This framework not only explores the expert-unobserved states but also guides maximizing long-term returns on these states, ultimately enabling generalization beyond the expert data. Empirical results show that our proposal could effectively mitigate the covariate shift and achieve the state-of-the-art performance on the offline imitation learning benchmarks. Project website: \url{https://www.lamda.nju.edu.cn/shaojj/KDD24_SRA/}.
+Diffusion policies trained via offline behavioral cloning have recently gained traction in robotic motion generation. While effective, these policies typically require a large number of trainable parameters. This model size affords powerful representations but also incurs high computational cost during training. Ideally, it would be beneficial to dynamically adjust the trainable portion as needed, balancing representational power with computational efficiency. For example, while overparameterization enables diffusion policies to capture complex robotic behaviors via offline behavioral cloning, the increased computational demand makes online interactive imitation learning impractical due to longer training time. To address this challenge, we present a framework, called DRIFT, that uses the Singular Value Decomposition to enable dynamic rank adjustment during diffusion policy training. We implement and demonstrate the benefits of this framework in DRIFT-DAgger, an imitation learning algorithm that can seamlessly slide between an offline bootstrapping phase and an online interactive phase. We perform extensive experiments to better understand the proposed framework, and demonstrate that DRIFT-DAgger achieves improved sample efficiency and faster training with minimal impact on model performance. The project website is available at: https://apollo-lab-yale.github.io/25-RSS-DRIFT-website/.
 
 *(Source: metadata)*
 
-### Conclusion (extracted)
+### Conclusion
 
-In this paper, we study the covariate shift problem of offline imitation learning. The key difficulty is that it is challenging for the agent to obtain trustworthy behavior on expert-unobserved states for policy optimization. To overcome this issue, we present a novel framework, offline imitation learning with Self-paced Reverse Augmentation. This framework generates the trajectories from expertunobserved states to expert-observed states in a self-paced way. When the agent encounters these expert-unobserved states, it can follow the generated trajectory to reach the expert-observed states, thereby improving the long-term return. To the best of our knowledge, this is the first time to introduce the reverse data augmentation to the offline imitation learning. It is different from previous methods based on the forward model. That is, it allows the strategy to explore more diverse expert-unobserved states. In the empirical studies, the effectiveness of our Self-paced Reverse Augmentation has been verified in a series of benchmark tasks. Not only has it achieved state-of-the-art performance, but it has also offered behavioral guidance and enhanced capabilities in the expert-unobserved states, providing a promising way to mitigate the covariate shift of offline imitation learning. This work is inspired by the BCDP [38], which presents the idea of leading the agent from expert-unobserved states to expertobserved states. We propose a reverse-model-based solution to generate diverse trajectories from expert-unobserved states to the expert-observed states. This strategy has a significant advantage in mitigating covariate shifts compared to previous forward-modelbased methods. A concurrent work, ILID [51], presents a similar idea and proposes a model-free data selection method leading the agents to focus on the trajectories whose resultant states fall within the expert data manifold. Further exploration of model-free strategies and the unified solutions with our model-based framework is an interesting direction. Another potential future direction is to extend Self-paced Reverse Augmentation with advanced model learning methods, such as dynamic quantization, to further improve the quality of augmented trajectories. ACKNOWLEDGMENTS This research was supported by Leading-edge Technology Program of Jiangsu Science Foundation (BK20232003), National Science Foundation of China (62176118) and the Postgraduate Research & Practice Innovation Program of Jiangsu Province (KYCX24_0233).
+*Conclusion not found in PDF*
 
 ---
 
-## 10) Feedback in Imitation Learning: The Three Regimes of Covariate Shift (2021) — arXiv:cs.LG
+## 10) SAIL: Faster-than-Demonstration Execution of Imitation Learning Policies (2025) — arXiv.org
 
-**Authors:** Jonathan Spencer, Sanjiban Choudhury, Arun Venkatraman, Brian Ziebart, J. Andrew Bagnell
+**Authors:** N. R. Arachchige, Zhenyang Chen, Wonsuhk Jung, Woo-Chul Shin, Rohan Bansal et al. (11 authors)
 
-**Links:** [Paper](https://arxiv.org/abs/2102.02872) | [arXiv](https://arxiv.org/abs/2102.02872)
+**Links:** [Paper](https://www.semanticscholar.org/paper/af0b77f432078c217b821c898647933cddc1b79d) | [DOI](https://doi.org/10.48550/arXiv.2506.11948) | [arXiv](https://arxiv.org/abs/2506.11948)
 
-**Why selected:** matches: imitation learning, covariate shift, behavioral cloning
+**Why selected:** matches: imitation learning, distribution shift, offline imitation; recent publication
 
-**PDF:** `papers/Feedback_in_Imitation_Learning_The_Three_Regimes_o_2021_2102_02872.pdf`
+**PDF:** `papers/SAIL_Faster-than-Demonstration_Execution_of_Imitat_2025_2506_11948.pdf`
 
 ### Abstract
 
-Imitation learning practitioners have often noted that conditioning policies on previous actions leads to a dramatic divergence between "held out" error and performance of the learner in situ. Interactive approaches can provably address this divergence but require repeated querying of a demonstrator. Recent work identifies this divergence as stemming from a "causal confound" in predicting the current action, and seek to ablate causal aspects of current state using tools from causal inference. In this work, we argue instead that this divergence is simply another manifestation of covariate shift, exacerbated particularly by settings of feedback between decisions and input features. The learner often comes to rely on features that are strongly predictive of decisions, but are subject to strong covariate shift. Our work demonstrates a broad class of problems where this shift can be mitigated, both theoretically and practically, by taking advantage of a simulator but without any further querying of expert demonstration. We analyze existing benchmarks used to test imitation learning approaches and find that these benchmarks are realizable and simple and thus insufficient for capturing the harder regimes of error compounding seen in real-world decision making problems. We find, in a surprising contrast with previous literature, but consistent with our theory, that naive behavioral cloning provides excellent results. We detail the need for new standardized benchmarks that capture the phenomena seen in robotics problems.
+Offline Imitation Learning (IL) methods such as Behavior Cloning are effective at acquiring complex robotic manipulation skills. However, existing IL-trained policies are confined to executing the task at the same speed as shown in demonstration data. This limits the task throughput of a robotic system, a critical requirement for applications such as industrial automation. In this paper, we introduce and formalize the novel problem of enabling faster-than-demonstration execution of visuomotor policies and identify fundamental challenges in robot dynamics and state-action distribution shifts. We instantiate the key insights as SAIL (Speed Adaptation for Imitation Learning), a full-stack system integrating four tightly-connected components: (1) a consistency-preserving action inference algorithm for smooth motion at high speed, (2) high-fidelity tracking of controller-invariant motion targets, (3) adaptive speed modulation that dynamically adjusts execution speed based on motion complexity, and (4) action scheduling to handle real-world system latencies. Experiments on 12 tasks across simulation and two real, distinct robot platforms show that SAIL achieves up to a 4x speedup over demonstration speed in simulation and up to 3.2x speedup in the real world. Additional detail is available at https://nadunranawaka1.github.io/sail-policy
 
 *(Source: metadata)*
+
+### Conclusion
+
+We formalized and identified challenges in the novel problem of faster-than-demonstration execution of visuomotor policies. Our framework, SAIL, tackles the full-stack problem by combining Error-Adaptive Guidance, controller-invariant targets, adaptive speed modulation, and latency-aware scheduling. Experiments show SAIL achieves up to 4× speedup in simulation and 3.2× speedup in real-world while maintaining high success rates across diverse tasks. 7 Limitations Through formalizing and proposing a solution for the novel problem of faster-than-demonstration execution, we have identified several fundamental challenges that open up new research directions for the robotics community. First, SAIL focuses on addressing the observation-action drift as a result of controller dynamics shift and does not explicitly tackle the dynamics shift of robot-object interaction. This manifests most clearly in manipulation tasks where object-robot dynamics be8 Plate Fruits 1 2 Pack Chicken 1 2 Bimanual Serve 1 2 3 Wiping Board Stacking Cups Baking Folding Cloth 1 2 2 1 1 2 3 Figure 7: Real-world task setup with two robot platforms (Franka and UR5). 7 8 Figure 8: Commonly-seen failure modes from real-world evaluation. Speeding up policy execution poses challenges unseen in normal speed execution, which include imprecise grasping (grasping two cups in 1, missing eraser in 5, and missing chicken in 7), low-fidelity tracking (colliding with other cups in 2 and 3, missing handle in 4, missing collar in 6), jerky motion (fruit drops in 8). SAIL effectively reduces such failures under speeding-up execution, leading to higher task throughput. come significantly more complex at higher speeds—for instance, we observed that in the simulated Can task, increased execution speed can cause the robot to inadvertently throw the can out of the workspace due to increased momentum. Relatedly, the finite-data nature of offline imitation learning makes it vulnerable to distributional shift that cannot be addressed solely by improving the policy learning algorithms. Future research could address this by developing methods to incorporate explicit dynamics modeling into policies, either by leveraging known dynamics models or learning from simulation-based data during training. As the field continues to advance learning-based manipulation in the wild, we believe a key focus should be to enable the robot learning system to co-optimize the low-level control and the anticipated dynamic effects of the predicted actions at different execution speeds. We hope this work can open new pathways and facilitate wider adoption of learned policies in real industrial applications. 9 Acknowledgments The authors would like to acknowledge the State of Georgia and the Agricultural Technology Research Program at Georgia Tech for supporting the work described in this paper. We also acknowledge funding from the AI Manufacturing Pilot Facility project under Georgia Artificial Intelligence in Manufacturing (Georgia 
 
 ---
 

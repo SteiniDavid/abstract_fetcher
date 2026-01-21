@@ -215,6 +215,18 @@ def main(
     selected = select_papers(papers_to_rank, topic, num_papers)
     logger.info(f"Selected {len(selected)} papers")
 
+    # Save all candidates with scores (papers_to_rank now have scores populated)
+    selected_ids = {p.doi or p.arxiv_id or p.title_normalized for p in selected}
+    all_candidates = []
+    for paper in sorted(papers_to_rank, key=lambda p: p.score, reverse=True):
+        paper_id = paper.doi or paper.arxiv_id or paper.title_normalized
+        candidate_data = paper.to_dict(include_abstract=False)
+        candidate_data["selected"] = paper_id in selected_ids
+        all_candidates.append(candidate_data)
+
+    with open(run_dir / "candidates.json", "w") as f:
+        json.dump(all_candidates, f, indent=2)
+
     # Download PDFs
     logger.info("Downloading PDFs...")
     download_results = download_pdfs(selected, run_dir / "papers")

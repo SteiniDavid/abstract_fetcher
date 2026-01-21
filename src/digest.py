@@ -58,13 +58,17 @@ def format_abstract(extract_result: dict) -> str:
     return f"{abstract}\n\n*(Source: {source})*"
 
 
-def format_conclusion(extract_result: dict) -> str | None:
+def format_conclusion(extract_result: dict, download_result: dict) -> str:
     """Format conclusion section."""
     conclusion = extract_result.get("conclusion")
-    if not conclusion:
-        return None
+    if conclusion:
+        return conclusion
 
-    return conclusion
+    # Provide reason why conclusion is not available
+    if download_result["status"] != "success":
+        return "*Conclusion not available (PDF not downloaded)*"
+
+    return "*Conclusion not found in PDF*"
 
 
 def generate_paper_entry(
@@ -104,13 +108,11 @@ def generate_paper_entry(
     lines.append(format_abstract(extract_result))
     lines.append("")
 
-    # Conclusion (if available)
-    conclusion = format_conclusion(extract_result)
-    if conclusion:
-        lines.append("### Conclusion (extracted)")
-        lines.append("")
-        lines.append(conclusion)
-        lines.append("")
+    # Conclusion
+    lines.append("### Conclusion")
+    lines.append("")
+    lines.append(format_conclusion(extract_result, download_result))
+    lines.append("")
 
     lines.append("---")
     lines.append("")
